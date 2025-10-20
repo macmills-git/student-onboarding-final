@@ -601,7 +601,7 @@ export const RegisterPage = () => {
       </form>
 
       {/* Help Section */}
-      <div className="pt-11">
+      <div className="pt-14">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center">

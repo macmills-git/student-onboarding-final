@@ -49,29 +49,29 @@ export const LoginPage = () => {
         <div className="absolute -bottom-20 left-10 w-40 h-40 bg-blue-600 rounded-full mix-blend-multiply filter blur-2xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
 
-      <div className="w-full max-w-xl relative z-10">
-        <div className="backdrop-blur-2xl bg-white/5 rounded-3xl shadow-2xl border border-white/10 p-10 space-y-8 animate-fade-in-up">
-          <div className="text-center space-y-3">
-            <div className="flex justify-center mb-4">
-              <img src={compssaLogo} alt="COMPSSA Logo" className="h-20 w-auto" />
+      <div className="w-full max-w-[410px] relative z-10">
+        <div className="backdrop-blur-2xl bg-white/5 rounded-3xl shadow-2xl border border-white/10 p-7 space-y-6 animate-fade-in-up">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center mb-2">
+              <img src={compssaLogo} alt="COMPSSA Logo" className="h-14 w-auto" />
             </div>
-            <h1 className="text-5xl font-extrabold text-white">Welcome Back</h1>
-            <p className="text-lg text-gray-300 dark:text-gray-400">Sign in to your account</p>
+            <h1 className="text-[2.5rem] font-extrabold text-white">Welcome Back</h1>
+            <p className="text-sm text-gray-300 dark:text-gray-400">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-3">
               <div className="relative">
-                <label className="block text-base font-medium text-gray-200 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-200 dark:text-gray-300 mb-1.5">
                   Username
                 </label>
                 <div className="relative">
-                  <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3.5 text-lg bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300"
                     placeholder="Enter username"
                     required
                   />
@@ -79,16 +79,16 @@ export const LoginPage = () => {
               </div>
 
               <div className="relative">
-                <label className="block text-base font-medium text-gray-200 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-200 dark:text-gray-300 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3.5 text-lg bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300"
                     placeholder="Enter password"
                     required
                   />
@@ -97,7 +97,7 @@ export const LoginPage = () => {
             </div>
 
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-200 text-base animate-shake">
+              <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2 text-red-200 text-sm animate-shake">
                 {error}
               </div>
             )}
@@ -105,28 +105,28 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-2xl"
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 'Sign In'
               )}
             </button>
           </form>
 
-          <div className="text-center space-y-2">
-            <p className="text-base text-gray-300 dark:text-gray-400">
+          <div className="text-center space-y-1.5">
+            <p className="text-sm text-gray-300 dark:text-gray-400">
               Demo Credentials
             </p>
-            <div className="text-base text-gray-400 space-y-1">
+            <div className="text-sm text-gray-400 space-y-0.5">
               <p><span className="text-blue-300">admin</span> / <span className="text-blue-300">admin123</span></p>
               <p><span className="text-green-300">clerk</span> / <span className="text-green-300">clerk123</span></p>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/10">
-            <p className="text-base text-center text-gray-400">
+          <div className="pt-3 border-t border-white/10">
+            <p className="text-sm text-center text-gray-400">
               <span className="font-medium text-blue-400">COMPSSA-UoG</span> © {new Date().getFullYear()}
             </p>
           </div>

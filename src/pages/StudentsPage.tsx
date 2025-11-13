@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, Eye, Edit, ChevronDown, Users } from 'lucide-react';
+import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2 } from 'lucide-react';
 import { mockStudents, Student } from '../lib/mockData';
 
 export const StudentsPage = () => {
@@ -79,11 +79,41 @@ export const StudentsPage = () => {
 
       alert(`Student ${student.name} updated successfully!`);
 
-      await fetchStudents();
+      // Update state directly to trigger re-render
+      setStudents(students.map(s =>
+        s.id === student.id
+          ? { ...student, updated_at: new Date().toISOString() }
+          : s
+      ));
+
       setIsEditing(false);
       setSelectedStudent(null);
     } catch (error) {
       console.error('Error updating student:', error);
+    }
+  };
+
+  const handleDelete = async (studentId: string, studentName: string) => {
+    if (!confirm(`Are you sure you want to delete ${studentName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Remove student from mock data
+      const studentIndex = mockStudents.findIndex(s => s.id === studentId);
+      if (studentIndex !== -1) {
+        mockStudents.splice(studentIndex, 1);
+      }
+
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      alert(`Student ${studentName} deleted successfully!`);
+
+      // Update state directly to trigger re-render
+      setStudents(students.filter(s => s.id !== studentId));
+    } catch (error) {
+      console.error('Error deleting student:', error);
     }
   };
 
@@ -337,6 +367,13 @@ export const StudentsPage = () => {
                         >
                           <Edit className="w-4 h-4" />
                           Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(student.id, student.name)}
+                          className="px-3 py-1.5 text-sm bg-transparent text-rose-700 dark:text-rose-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center gap-1 border border-gray-300 dark:border-gray-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
                         </button>
                       </div>
                     </td>

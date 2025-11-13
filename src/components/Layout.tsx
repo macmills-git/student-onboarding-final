@@ -42,18 +42,18 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
 
         {/* NAVBAR */}
-        <nav className="fixed top-0 left-0 right-0 z-[9999] transition-all duration-500 ease-in-out pt-4 px-6 animate-fade-in">
-          <div className="mx-auto px-8 sm:px-12 lg:px-16 h-16 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
-            <div className="flex items-center justify-between h-full gap-12">
+        <nav className="fixed top-0 left-0 right-0 z-[9999] transition-all duration-500 ease-in-out pt-3 md:pt-4 px-3 md:px-6 animate-fade-in">
+          <div className="mx-auto px-4 sm:px-8 lg:px-12 h-14 md:h-16 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
+            <div className="flex items-center justify-between h-full gap-4 md:gap-12">
 
               {/* Logo - far left */}
               <div className="flex-shrink-0">
-                <Link to="/home" className="flex items-center gap-4 hover:opacity-80 transition-all duration-200 transform hover:scale-105">
-                  <img src={compssaLogo} alt="COMPSSA Logo" className="h-12 w-auto" />
-                  <span className="text-lg font-bold text-gray-800 dark:text-white hidden xs:block">
+                <Link to="/home" className="flex items-center gap-2 md:gap-4 hover:opacity-80 transition-all duration-200 transform hover:scale-105">
+                  <img src={compssaLogo} alt="COMPSSA Logo" className="h-8 md:h-10 w-auto" />
+                  <span className="text-sm md:text-lg font-bold text-gray-800 dark:text-white hidden xs:block">
                     Student Management
                   </span>
-                  <span className="text-lg font-bold text-gray-800 dark:text-white block xs:hidden">
+                  <span className="text-sm md:text-lg font-bold text-gray-800 dark:text-white block xs:hidden">
                     SMS
                   </span>
                 </Link>
@@ -80,9 +80,9 @@ export const Layout = ({ children }: LayoutProps) => {
               </div>
 
               {/* Actions - far right - Always visible */}
-              <div className="flex items-center gap-3 md:gap-6 ml-auto">
+              <div className="flex items-center gap-2 md:gap-6 ml-auto">
                 {profile && (
-                  <div className={`hidden md:block px-5 py-2 rounded-full text-sm font-bold ${profile.role === 'admin'
+                  <div className={`hidden md:block px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold ${profile.role === 'admin'
                     ? 'bg-blue-900/30 text-white border border-blue-800'
                     : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800'
                     }`}>
@@ -93,35 +93,35 @@ export const Layout = ({ children }: LayoutProps) => {
                 {/* Theme toggle - Always visible */}
                 <button
                   onClick={toggleTheme}
-                  className="p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 hover:shadow-lg"
+                  className="p-2 md:p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 hover:shadow-lg"
                   title="Toggle theme"
                 >
                   {isDark ? (
-                    <Sun className="w-5 h-5 text-yellow-500 animate-spin" />
+                    <Sun className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 animate-spin" />
                   ) : (
-                    <Moon className="w-5 h-5 text-gray-600 animate-pulse" />
+                    <Moon className="w-4 h-4 md:w-5 md:h-5 text-gray-600 animate-pulse" />
                   )}
                 </button>
 
                 {/* Logout button - Always visible */}
                 <button
                   onClick={handleSignOutClick}
-                  className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
+                  className="p-2 md:p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
                   title="Sign out"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
 
                 {/* Mobile Menu Button - Only on mobile */}
                 <div className="md:hidden">
                   <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
+                    className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
                   >
                     {isMobileMenuOpen ? (
-                      <X className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                      <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                     ) : (
-                      <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                      <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                     )}
                   </button>
                 </div>
@@ -165,7 +165,7 @@ export const Layout = ({ children }: LayoutProps) => {
         </div>
 
         {/* MAIN CONTENT */}
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-0 pt-28 sm:pt-32 lg:pt-32 min-h-screen animate-fade-in transition-all duration-500 ease-in-out">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-0 pt-20 sm:pt-24 lg:pt-24 min-h-screen animate-fade-in transition-all duration-500 ease-in-out">
           <div className="max-w-7xl mx-auto animate-slide-up">
             {children}
           </div>
@@ -174,9 +174,9 @@ export const Layout = ({ children }: LayoutProps) => {
         {/* FOOTER */}
         <footer className="relative">
           <div className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-md border-t border-white/20 dark:border-gray-700/20 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
-            <div className="container mx-auto px-6 sm:px-8 lg:px-12 py-6">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 md:py-4">
               <div className="max-w-7xl mx-auto text-center">
-                <p className="text-lg text-gray-700 dark:text-gray-300">
+                <p className="text-xs md:text-sm text-gray-700 dark:text-gray-300">
                   Powered by <span className="font-bold text-blue-500">COMPSSA-UoG</span> © {new Date().getFullYear()}. All rights reserved.
                 </p>
               </div>

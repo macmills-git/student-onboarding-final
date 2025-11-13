@@ -210,7 +210,7 @@ export const DashboardPage = () => {
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">
+            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
               {userAnalytics.reduce((sum, user) => sum + user.registeredToday, 0)}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Registrations</p>
@@ -222,7 +222,7 @@ export const DashboardPage = () => {
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">
+            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
               GH₵ {userAnalytics.reduce((sum, user) => sum + user.revenueToday, 0).toLocaleString()}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
@@ -234,7 +234,7 @@ export const DashboardPage = () => {
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Week</span>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">
+            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
               {userAnalytics.reduce((sum, user) => sum + user.registeredThisWeek, 0)}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Total</p>
@@ -246,7 +246,7 @@ export const DashboardPage = () => {
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Now</span>
             </div>
-            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">{stats.activeUsers}</p>
+            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">{stats.activeUsers}</p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Staff Online</p>
           </div>
         </div>
@@ -647,7 +647,7 @@ export const DashboardPage = () => {
               <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-bold text-gray-700 dark:text-gray-300">System Status</span>
             </div>
-            <p className="text-3xl font-extrabold text-gray-800 dark:text-white mb-1">Operational</p>
+            <p className="text-2xl font-normal text-gray-800 dark:text-white mb-1">Operational</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">All systems running smoothly</p>
           </div>
           <div className="bg-transparent rounded-xl p-5 border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all duration-200">
@@ -655,7 +655,7 @@ export const DashboardPage = () => {
               <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
               <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Maintenance</span>
             </div>
-            <p className="text-3xl font-extrabold text-gray-800 dark:text-white mb-1">Sunday</p>
+            <p className="text-2xl font-normal text-gray-800 dark:text-white mb-1">Sunday</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">Scheduled at 2:00 AM</p>
           </div>
           <div className="bg-transparent rounded-xl p-5 border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all duration-200">
@@ -663,7 +663,7 @@ export const DashboardPage = () => {
               <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
               <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Updates</span>
             </div>
-            <p className="text-3xl font-extrabold text-gray-800 dark:text-white mb-1">Available</p>
+            <p className="text-2xl font-normal text-gray-800 dark:text-white mb-1">Available</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">New features ready</p>
           </div>
         </div>

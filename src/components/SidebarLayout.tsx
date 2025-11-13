@@ -27,8 +27,8 @@ export const SidebarLayout = ({ children }: SidebarLayoutProps) => {
 
                 {/* Footer */}
                 <footer className="md:ml-[15%] lg:ml-[11%] relative bg-white/30 dark:bg-gray-800/30 backdrop-blur-md border-t border-white/20 dark:border-gray-700/20 transition-all duration-500 ease-in-out">
-                    <div className="px-8 py-6">
-                        <p className="text-sm text-center text-gray-700 dark:text-gray-300">
+                    <div className="px-4 md:px-8 py-3 md:py-4">
+                        <p className="text-xs md:text-sm text-center text-gray-700 dark:text-gray-300">
                             Powered by <span className="font-bold text-blue-500">COMPSSA-UoG</span> © {new Date().getFullYear()}. All rights reserved.
                         </p>
                     </div>

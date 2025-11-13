@@ -1,5 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { UserPlus, Edit, Trash2, Shield, X, Check, UserCircle, Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { mockUsers, User, getUserAnalytics } from '../lib/mockData';
 
 export const UsersPage = () => {
@@ -75,6 +75,9 @@ export const UsersPage = () => {
 
       alert(`User ${newUser.full_name} created successfully!`);
 
+      // Update state directly to trigger re-render
+      setUsers([newUserRecord, ...users]);
+
       setShowAddModal(false);
       setNewUser({
         username: '',
@@ -82,7 +85,6 @@ export const UsersPage = () => {
         full_name: '',
         role: 'clerk',
       });
-      fetchUsers();
     } catch (error) {
       console.error('Error adding user:', error);
     }
@@ -101,8 +103,14 @@ export const UsersPage = () => {
 
       alert(`User ${user.full_name} updated successfully!`);
 
+      // Update state directly to trigger re-render
+      setUsers(users.map(u =>
+        u.id === user.id
+          ? { ...user, updated_at: new Date().toISOString() }
+          : u
+      ));
+
       setEditingUser(null);
-      fetchUsers();
     } catch (error) {
       console.error('Error updating user:', error);
     }
@@ -123,7 +131,8 @@ export const UsersPage = () => {
 
       alert('User deleted successfully!');
 
-      fetchUsers();
+      // Update state directly to trigger re-render
+      setUsers(users.filter(u => u.id !== userId));
     } catch (error) {
       console.error('Error deleting user:', error);
     }
@@ -146,7 +155,12 @@ export const UsersPage = () => {
 
       alert(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
 
-      fetchUsers();
+      // Update state directly to trigger re-render
+      setUsers(users.map(u =>
+        u.id === userId
+          ? { ...u, is_active: !currentStatus, updated_at: new Date().toISOString() }
+          : u
+      ));
     } catch (error) {
       console.error('Error toggling user status:', error);
     }

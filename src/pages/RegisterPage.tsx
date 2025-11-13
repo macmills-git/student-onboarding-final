@@ -624,10 +624,10 @@ export const RegisterPage = () => {
                 </div>
 
                 {/* Main message */}
-                <p className="text-2xl text-white font-semibold mb-2">
-                  Student <span className="text-green-400">{registeredStudentId}</span>
+                <p className="text-2xl text-gray-800 dark:text-white font-semibold mb-2">
+                  Student <span className="text-green-500 dark:text-green-400">{registeredStudentId}</span>
                 </p>
-                <p className="text-xl text-gray-300 mb-6">
+                <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
                   Successfully Registered
                 </p>
 

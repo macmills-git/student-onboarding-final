@@ -110,13 +110,13 @@ export const HomePage = () => {
 
         {/* Content */}
         <div className="relative z-20 text-center text-white px-6 max-w-4xl mx-auto">
-          <h1 className="text-[2.75rem] md:text-[3.42rem] lg:text-[4.18rem] font-bold mb-3 leading-tight animate-fade-in-up text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]">
+          <h1 className="text-[2.2rem] md:text-[3.42rem] lg:text-[3.34rem] font-bold mb-3 leading-tight animate-fade-in-up text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.8)] mt-16 lg:mt-32">
             COMPSSA
           </h1>
-          <p className="text-[1.75rem] md:text-[2.28rem] lg:text-[2.85rem] font-semibold mb-2 text-white animate-fade-in-up animation-delay-200 drop-shadow-[0_0_20px_rgba(255,255,255,0.6)]">
+          <p className="text-[1.4rem] md:text-[2.28rem] lg:text-[2.28rem] font-semibold mb-2 text-white animate-fade-in-up animation-delay-200 drop-shadow-[0_0_20px_rgba(255,255,255,0.6)]">
             Student Management System
           </p>
-          <p className="text-[1.05rem] md:text-[1.19rem] lg:text-[1.43rem] text-blue-100 mb-8 leading-relaxed max-w-3xl mx-auto animate-fade-in-up animation-delay-300 drop-shadow-lg">
+          <p className="text-[0.84rem] md:text-[1.19rem] lg:text-[1.14rem] text-blue-100 mb-8 leading-relaxed max-w-3xl mx-auto animate-fade-in-up animation-delay-300 drop-shadow-lg">
             Empowering excellence through efficient student registration, tracking, and analytics.
           </p>
 
@@ -189,7 +189,7 @@ export const HomePage = () => {
 
         {/* WHY CHOOSE US SECTION */}
         <div className="p-6 md:p-16 py-12 md:py-20 -mt-11" ref={whyChooseRef}>
-          <div className={`text-center mb-10 md:mb-16 transition-all duration-200 delay-[100ms] ${isWhyChooseVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
+          <div className={`text-center mb-10 md:mb-16 transition-all duration-[400ms] delay-[200ms] ${isWhyChooseVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
             <h2 className="text-2xl md:text-4xl font-bold text-gray-800 dark:text-white mb-3 md:mb-6">
               Why Choose Our Platform?
             </h2>
@@ -198,7 +198,7 @@ export const HomePage = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            <div className={`text-center transition-all duration-200 ${isWhyChooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`} style={{ transitionDelay: '200ms' }}>
+            <div className={`text-center transition-all duration-[400ms] ${isWhyChooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`} style={{ transitionDelay: '400ms' }}>
               <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg">
                 <CheckCircle2 className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
@@ -207,7 +207,7 @@ export const HomePage = () => {
                 Intuitive interface designed for users of all technical levels
               </p>
             </div>
-            <div className={`text-center transition-all duration-200 ${isWhyChooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`} style={{ transitionDelay: '200ms' }}>
+            <div className={`text-center transition-all duration-[400ms] ${isWhyChooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`} style={{ transitionDelay: '400ms' }}>
               <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg">
                 <Shield className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
@@ -216,7 +216,7 @@ export const HomePage = () => {
                 Enterprise-grade security to protect your sensitive data
               </p>
             </div>
-            <div className={`text-center transition-all duration-200 ${isWhyChooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`} style={{ transitionDelay: '200ms' }}>
+            <div className={`text-center transition-all duration-[400ms] ${isWhyChooseVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`} style={{ transitionDelay: '400ms' }}>
               <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg">
                 <Zap className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>

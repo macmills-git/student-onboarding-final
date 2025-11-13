@@ -58,18 +58,18 @@ export const HomePage = () => {
       link: '/register'
     },
     {
-      title: 'Student Management',
-      description: 'Efficiently manage and track all student records in one place',
-      icon: Users,
-      color: 'from-green-500 to-emerald-500',
-      link: '/students'
-    },
-    {
       title: 'Analytics Dashboard',
       description: 'Get real-time insights with comprehensive analytics and reports',
       icon: TrendingUp,
       color: 'from-cyan-500 to-teal-500',
       link: '/dashboard'
+    },
+    {
+      title: 'Student Management',
+      description: 'Efficiently manage and track all student records in one place',
+      icon: Users,
+      color: 'from-green-500 to-emerald-500',
+      link: '/students'
     },
     {
       title: 'Payment Tracking',

@@ -161,61 +161,61 @@ export const UsersPage = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 animate-fade-in pb-12">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Users</h1>
-          <p className="text-base text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1 md:mb-2">Users</h1>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Manage system users and permissions
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md"
+          className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md w-full md:w-auto justify-center"
         >
-          <UserPlus className="w-5 h-5" />
+          <UserPlus className="w-4 h-4 md:w-5 md:h-5" />
           Add User
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded flex items-center justify-center">
-            <Shield className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+      <div id="security" className="bg-white dark:bg-gray-800 rounded-lg p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700 scroll-mt-24">
+        <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-100 dark:bg-teal-900/30 rounded flex items-center justify-center">
+            <Shield className="w-5 h-5 md:w-6 md:h-6 text-teal-600 dark:text-teal-400" />
           </div>
-          <h3 className="text-2xl font-semibold text-gray-800 dark:text-white">
+          <h3 className="text-xl md:text-2xl font-semibold text-gray-800 dark:text-white">
             Security & Access
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded p-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded p-3 md:p-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-              <span className="text-base font-medium text-gray-800 dark:text-gray-300">Security Level</span>
+              <Shield className="w-4 h-4 md:w-5 md:h-5 text-teal-600 dark:text-teal-400" />
+              <span className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-300">Security Level</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">High</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Protected system</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">High</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Protected system</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded p-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
+          <div className="bg-white dark:bg-gray-800 rounded p-3 md:p-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="flex items-center gap-2 mb-2">
-              <UserCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <span className="text-base font-medium text-gray-800 dark:text-gray-300">Access Control</span>
+              <UserCircle className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-300">Access Control</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">Active</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Permissions managed</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Active</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Permissions managed</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded p-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
+          <div className="bg-white dark:bg-gray-800 rounded p-3 md:p-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              <span className="text-base font-medium text-gray-800 dark:text-gray-300">Monitoring</span>
+              <Activity className="w-4 h-4 md:w-5 md:h-5 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-sm md:text-base font-medium text-gray-800 dark:text-gray-300">Monitoring</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">24/7</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Always watching</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">24/7</p>
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Always watching</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+      <div id="user-list" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 scroll-mt-24">
         <div className="space-y-3">
           {users.map((user) => {
             const isExpanded = expandedUserId === user.id;
@@ -228,29 +228,29 @@ export const UsersPage = () => {
             return (
               <div
                 key={user.id}
-                className="bg-gray-50 dark:bg-gray-900/50 rounded p-3 border border-gray-200 dark:border-gray-700"
+                className="bg-gray-50 dark:bg-gray-900/50 rounded p-2 md:p-3 border border-gray-200 dark:border-gray-700"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-0 md:justify-between">
                   <div
-                    className="flex items-center gap-4 flex-1 cursor-pointer"
+                    className="flex items-center gap-3 md:gap-4 flex-1 cursor-pointer w-full"
                     onClick={() => toggleUserExpand(user.id)}
                   >
-                    <div className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                    <div className="w-12 h-12 md:w-14 md:h-14 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl flex-shrink-0">
                       {user.full_name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                        <h3 className="text-base md:text-lg font-semibold text-gray-800 dark:text-white truncate">
                           {user.full_name}
                         </h3>
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                          <ChevronUp className="w-4 h-4 md:w-5 md:h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                          <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-base text-gray-600 dark:text-gray-400">
-                        <span>@{user.username}</span>
+                      <div className="flex items-center gap-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
+                        <span className="truncate">@{user.username}</span>
                         <span className="hidden md:inline">•</span>
                         <span className={`hidden md:inline px-2 py-1 rounded text-sm ${user.role === 'admin'
                           ? 'bg-gray-200 dark:bg-gray-700 text-red-600 dark:text-red-400'
@@ -268,30 +268,30 @@ export const UsersPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 md:gap-2 w-full md:w-auto">
                     <button
                       onClick={() => setEditingUser(user)}
-                      className="px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 rounded hover:bg-slate-100 dark:hover:bg-slate-900/30 transition-all flex items-center gap-1 border border-slate-200 dark:border-slate-800"
+                      className="flex-1 md:flex-none px-2 md:px-3 py-1.5 text-xs md:text-sm bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 rounded hover:bg-slate-100 dark:hover:bg-slate-900/30 transition-all flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-800"
                     >
-                      <Edit className="w-4 h-4" />
-                      Edit
+                      <Edit className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">Edit</span>
                     </button>
                     <button
                       onClick={() => toggleUserStatus(user.id, user.is_active)}
-                      className={`px-3 py-1.5 text-sm rounded transition-all flex items-center gap-1 border ${user.is_active
+                      className={`flex-1 md:flex-none px-2 md:px-3 py-1.5 text-xs md:text-sm rounded transition-all flex items-center justify-center gap-1 border ${user.is_active
                         ? 'bg-transparent text-amber-700 dark:text-amber-600 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600'
                         : 'bg-transparent text-teal-700 dark:text-teal-600 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600'
                         }`}
                     >
-                      <Shield className="w-4 h-4" />
-                      {user.is_active ? 'Deactivate' : 'Activate'}
+                      <Shield className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">{user.is_active ? 'Deactivate' : 'Activate'}</span>
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user.id)}
-                      className="px-3 py-1.5 text-sm bg-transparent text-rose-700 dark:text-rose-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center gap-1 border border-gray-300 dark:border-gray-600"
+                      className="flex-1 md:flex-none px-2 md:px-3 py-1.5 text-xs md:text-sm bg-transparent text-rose-700 dark:text-rose-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-1 border border-gray-300 dark:border-gray-600"
                     >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
+                      <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">Delete</span>
                     </button>
                   </div>
                 </div>
@@ -577,7 +577,7 @@ export const UsersPage = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div id="user-activity" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 scroll-mt-24">
           <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">User Activity</h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
@@ -634,7 +634,7 @@ export const UsersPage = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div id="permissions" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 scroll-mt-24">
           <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">Permission Overview</h3>
           <div className="space-y-2">
             <div className="p-3 bg-transparent rounded border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all duration-200 cursor-pointer">

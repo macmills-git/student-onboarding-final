@@ -30,8 +30,8 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const navItems = [
     { path: '/home', label: 'Home', icon: Home },
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/register', label: 'Register', icon: UserCircle },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/students', label: 'Students', icon: GraduationCap },
     { path: '/payments', label: 'Payments', icon: DollarSign },
     { path: '/users', label: 'Users', icon: UserCog },
@@ -42,8 +42,8 @@ export const Layout = ({ children }: LayoutProps) => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
 
         {/* NAVBAR */}
-        <nav className="fixed top-0 left-0 right-0 z-[9999] transition-all duration-500 ease-in-out pt-6 px-6 animate-fade-in">
-          <div className="mx-auto px-8 sm:px-12 lg:px-16 h-20 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
+        <nav className="fixed top-0 left-0 right-0 z-[9999] transition-all duration-500 ease-in-out pt-4 px-6 animate-fade-in">
+          <div className="mx-auto px-8 sm:px-12 lg:px-16 h-16 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
             <div className="flex items-center justify-between h-full gap-12">
 
               {/* Logo - far left */}
@@ -165,7 +165,7 @@ export const Layout = ({ children }: LayoutProps) => {
         </div>
 
         {/* MAIN CONTENT */}
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-0 pt-36 sm:pt-40 lg:pt-40 min-h-screen animate-fade-in transition-all duration-500 ease-in-out">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 pb-0 pt-28 sm:pt-32 lg:pt-32 min-h-screen animate-fade-in transition-all duration-500 ease-in-out">
           <div className="max-w-7xl mx-auto animate-slide-up">
             {children}
           </div>

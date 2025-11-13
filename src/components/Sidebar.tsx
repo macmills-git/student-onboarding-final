@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import {
-    TrendingUp, PieChart, BarChart3, Activity, Moon, Sun, LogOut, X
+    TrendingUp, PieChart, BarChart3, Activity, Moon, Sun, LogOut, X,
+    Users, GraduationCap, DollarSign, Shield, UserCog
 } from 'lucide-react';
 import compssaLogo from '../assets/images/compssalogo.png';
 import { useTheme } from '../contexts/ThemeContext';
@@ -11,6 +12,7 @@ export const Sidebar = () => {
     const { isDark, toggleTheme } = useTheme();
     const { signOut } = useAuth();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const location = useLocation();
 
     const handleSignOutClick = () => setShowLogoutModal(true);
     const handleConfirmSignOut = () => {
@@ -19,15 +21,53 @@ export const Sidebar = () => {
     };
     const handleCancelSignOut = () => setShowLogoutModal(false);
 
-    const analyticsItems = [
-        { path: '/dashboard#operations', label: 'Daily Operations', icon: TrendingUp },
-        { path: '/dashboard#courses', label: 'Course Analytics', icon: PieChart },
-        { path: '/dashboard#performance', label: 'Staff Performance', icon: BarChart3 },
-        { path: '/dashboard#system', label: 'System Status', icon: Activity },
-    ];
+    // Dynamic analytics items based on current page
+    const getAnalyticsItems = () => {
+        const path = location.pathname;
+
+        if (path === '/dashboard') {
+            return [
+                { path: '/dashboard#operations', label: 'Daily Operations', icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400' },
+                { path: '/dashboard#courses', label: 'Course Analytics', icon: PieChart, color: 'text-cyan-600 dark:text-cyan-400' },
+                { path: '/dashboard#performance', label: 'Staff Performance', icon: BarChart3, color: 'text-green-600 dark:text-green-400' },
+                { path: '/dashboard#system', label: 'System Status', icon: Activity, color: 'text-purple-600 dark:text-purple-400' },
+            ];
+        } else if (path === '/students') {
+            return [
+                { path: '/students', label: 'Student List', icon: Users, color: 'text-blue-600 dark:text-blue-400' },
+                { path: '/students', label: 'Analytics', icon: BarChart3, color: 'text-green-600 dark:text-green-400' },
+                { path: '/students', label: 'Course Stats', icon: PieChart, color: 'text-cyan-600 dark:text-cyan-400' },
+                { path: '/students', label: 'Level Stats', icon: TrendingUp, color: 'text-orange-600 dark:text-orange-400' },
+            ];
+        } else if (path === '/payments') {
+            return [
+                { path: '/payments', label: 'Payment Overview', icon: DollarSign, color: 'text-green-600 dark:text-green-400' },
+                { path: '/payments', label: 'Revenue Stats', icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400' },
+                { path: '/payments', label: 'Payment Records', icon: BarChart3, color: 'text-cyan-600 dark:text-cyan-400' },
+                { path: '/payments', label: 'User Revenue', icon: Activity, color: 'text-purple-600 dark:text-purple-400' },
+            ];
+        } else if (path === '/users') {
+            return [
+                { path: '/users#security', label: 'Security & Access', icon: Shield, color: 'text-teal-600 dark:text-teal-400' },
+                { path: '/users#user-list', label: 'User List', icon: UserCog, color: 'text-blue-600 dark:text-blue-400' },
+                { path: '/users#user-activity', label: 'User Activity', icon: Activity, color: 'text-green-600 dark:text-green-400' },
+                { path: '/users#permissions', label: 'Permissions', icon: BarChart3, color: 'text-purple-600 dark:text-purple-400' },
+            ];
+        }
+
+        // Default dashboard items
+        return [
+            { path: '/dashboard#operations', label: 'Daily Operations', icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400' },
+            { path: '/dashboard#courses', label: 'Course Analytics', icon: PieChart, color: 'text-cyan-600 dark:text-cyan-400' },
+            { path: '/dashboard#performance', label: 'Staff Performance', icon: BarChart3, color: 'text-green-600 dark:text-green-400' },
+            { path: '/dashboard#system', label: 'System Status', icon: Activity, color: 'text-purple-600 dark:text-purple-400' },
+        ];
+    };
+
+    const analyticsItems = getAnalyticsItems();
 
     return (
-        <aside className="fixed left-0 top-0 h-screen bg-white/30 dark:bg-gray-800/30 backdrop-blur-md border-r border-white/20 dark:border-gray-700/20 shadow-[4px_0_30px_rgba(0,0,0,0.15)] dark:shadow-[4px_0_30px_rgba(0,0,0,0.5)] transition-all duration-500 ease-in-out z-40 w-[15%] lg:w-[11%]">
+        <aside className="hidden md:fixed left-0 top-0 h-screen bg-white/30 dark:bg-gray-800/30 backdrop-blur-md border-r border-white/20 dark:border-gray-700/20 shadow-[4px_0_30px_rgba(0,0,0,0.15)] dark:shadow-[4px_0_30px_rgba(0,0,0,0.5)] transition-all duration-500 ease-in-out z-40 w-[15%] lg:w-[11%] md:block">
             <div className="flex flex-col h-full">
                 {/* Logo */}
                 <div className="flex items-center justify-center p-4 border-b border-white/20 dark:border-gray-700/20">
@@ -37,18 +77,33 @@ export const Sidebar = () => {
                 </div>
 
                 {/* Analytics Section */}
-                <nav className="flex-1 overflow-y-auto p-3">
+                <nav className="flex-1 overflow-y-auto p-3 pt-6">
                     <div className="space-y-2">
                         {analyticsItems.map((item, index) => {
                             const Icon = item.icon;
+                            const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                                e.preventDefault();
+                                const hash = item.path.split('#')[1];
+                                if (hash) {
+                                    const element = document.getElementById(hash);
+                                    if (element) {
+                                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                } else {
+                                    // If no hash, scroll to top
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                            };
+
                             return (
-                                <div key={item.path}>
+                                <div key={`${item.path}-${index}`}>
                                     <a
                                         href={item.path}
-                                        className="flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all duration-200 group text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400"
+                                        onClick={handleClick}
+                                        className="flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all duration-200 group hover:bg-blue-100 dark:hover:bg-blue-900/20 cursor-pointer"
                                     >
-                                        <Icon className="w-5 h-5 flex-shrink-0" />
-                                        <span className="text-xs font-bold text-center leading-tight">{item.label}</span>
+                                        <Icon className={`w-5 h-5 flex-shrink-0 ${item.color} group-hover:scale-110 transition-transform`} />
+                                        <span className="text-xs font-extrabold text-center leading-tight text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">{item.label}</span>
                                     </a>
                                     {index < analyticsItems.length - 1 && (
                                         <div className="border-t border-gray-300 dark:border-gray-600 mt-2"></div>

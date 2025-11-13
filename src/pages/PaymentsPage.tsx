@@ -117,31 +117,31 @@ export const PaymentsPage = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 animate-fade-in pb-12">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Payments</h1>
-          <p className="text-base text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1 md:mb-2">Payments</h1>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Track and manage payment records
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md"
+          className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md w-full md:w-auto"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4 md:w-5 md:h-5" />
           Add Payment
         </button>
       </div>
 
 
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 md:p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
+          <div className="w-7 h-7 md:w-8 md:h-8 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center">
+            <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white">
             Payment Overview
           </h3>
         </div>

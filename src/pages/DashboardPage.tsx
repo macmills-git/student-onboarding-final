@@ -183,17 +183,17 @@ export const DashboardPage = () => {
   }
 
   return (
-    <div className="space-y-10 animate-fade-in pb-12">
+    <div className="space-y-6 md:space-y-10 animate-fade-in pb-12">
 
       {/* Daily Operations Summary */}
-      <div id="operations" className="scroll-mt-32 mt-4">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
+      <div id="operations" className="scroll-mt-24 md:scroll-mt-32 mt-2 md:mt-4">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+              <h3 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
                 Today's Operations
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -202,66 +202,66 @@ export const DashboardPage = () => {
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className={`relative overflow-hidden bg-transparent rounded-lg p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`}>
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
-                <UserPlus className="w-5 h-5 text-white" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className={`relative overflow-hidden bg-transparent rounded-lg p-4 md:p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`}>
+            <div className="flex items-start justify-between mb-2 md:mb-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
+                <UserPlus className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white mb-1">
+            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">
               {userAnalytics.reduce((sum, user) => sum + user.registeredToday, 0)}
             </p>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Registrations</p>
+            <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Registrations</p>
           </div>
-          <div className={`relative overflow-hidden bg-transparent rounded-lg p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`}>
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
-                <DollarSign className="w-5 h-5 text-white" />
+          <div className={`relative overflow-hidden bg-transparent rounded-lg p-4 md:p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`}>
+            <div className="flex items-start justify-between mb-2 md:mb-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
+                <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white mb-1">
+            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">
               GH₵ {userAnalytics.reduce((sum, user) => sum + user.revenueToday, 0).toLocaleString()}
             </p>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
+            <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
           </div>
-          <div className={`relative overflow-hidden bg-transparent rounded-lg p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`}>
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
-                <Users className="w-5 h-5 text-white" />
+          <div className={`relative overflow-hidden bg-transparent rounded-lg p-4 md:p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`}>
+            <div className="flex items-start justify-between mb-2 md:mb-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Week</span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white mb-1">
+            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">
               {userAnalytics.reduce((sum, user) => sum + user.registeredThisWeek, 0)}
             </p>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Total</p>
+            <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Total</p>
           </div>
-          <div className={`relative overflow-hidden bg-transparent rounded-lg p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`}>
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
-                <Activity className="w-5 h-5 text-white" />
+          <div className={`relative overflow-hidden bg-transparent rounded-lg p-4 md:p-5 border-2 border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg hover:scale-105 hover:-translate-y-2 transition-all duration-[525ms] ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`}>
+            <div className="flex items-start justify-between mb-2 md:mb-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-sky-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-150">
+                <Activity className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Now</span>
             </div>
-            <p className="text-3xl font-bold text-gray-800 dark:text-white mb-1">{stats.activeUsers}</p>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Staff Online</p>
+            <p className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1">{stats.activeUsers}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Staff Online</p>
           </div>
         </div>
       </div>
 
       {/* Course Distribution Analytics */}
-      <div id="courses" ref={chartRef} className="rounded-lg p-4 scroll-mt-32 border-t-2 border-gray-300 dark:border-gray-600">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+      <div id="courses" ref={chartRef} className="rounded-lg p-3 md:p-4 scroll-mt-24 md:scroll-mt-32 border-t-2 border-gray-300 dark:border-gray-600">
+        <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+          <div className="w-7 h-7 md:w-8 md:h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
             <PieChart className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+          <h3 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">
             Course Distribution Analytics
           </h3>
-          <span className="text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-full font-medium">
+          <span className="text-xs md:text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 md:px-3 py-1 md:py-1.5 rounded-full font-medium">
             Live Data
           </span>
         </div>

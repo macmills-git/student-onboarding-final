@@ -22,8 +22,8 @@ export const TopNavbar = () => {
 
   const navItems = [
     { path: '/home', label: 'Home', icon: Home },
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/register', label: 'Register', icon: UserCircle },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/students', label: 'Students', icon: GraduationCap },
     { path: '/payments', label: 'Payments', icon: DollarSign },
     { path: '/users', label: 'Users', icon: UserCog },
@@ -31,8 +31,8 @@ export const TopNavbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-[15%] lg:left-[11%] right-0 z-[9999] transition-all duration-500 ease-in-out pt-6 px-6 animate-fade-in">
-        <div className="mx-auto px-8 h-20 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 flex items-center transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
+      <nav className="fixed top-0 left-0 md:left-[15%] lg:left-[11%] right-0 z-[9999] transition-all duration-500 ease-in-out pt-3 md:pt-4 px-3 md:px-6 animate-fade-in">
+        <div className="mx-auto px-4 md:px-8 h-14 md:h-16 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 flex items-center transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
           {/* Main Navigation - Centered - Hidden on mobile (sidebar handles mobile) */}
           <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:flex items-center gap-3 lg:gap-6">
             {navItems.map((item) => {
@@ -54,39 +54,39 @@ export const TopNavbar = () => {
           </div>
 
           {/* Right Side Actions - Always visible */}
-          <div className="flex items-center gap-3 md:gap-6 absolute right-4 md:right-8">
+          <div className="flex items-center gap-2 md:gap-6 absolute right-2 md:right-8">
             {/* Theme Toggle - Always visible */}
             <button
               onClick={toggleTheme}
-              className="p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 hover:shadow-lg"
+              className="p-2 md:p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 hover:shadow-lg"
               title="Toggle theme"
             >
               {isDark ? (
-                <Sun className="w-5 h-5 text-yellow-500 animate-spin" />
+                <Sun className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 animate-spin" />
               ) : (
-                <Moon className="w-5 h-5 text-gray-600 animate-pulse" />
+                <Moon className="w-4 h-4 md:w-5 md:h-5 text-gray-600 animate-pulse" />
               )}
             </button>
 
             {/* Logout Button - Always visible */}
             <button
               onClick={handleSignOutClick}
-              className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
+              className="p-2 md:p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
               title="Sign out"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4 md:w-5 md:h-5" />
             </button>
 
             {/* Mobile Menu Button - Only on mobile - Last item */}
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
+                className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                 ) : (
-                  <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  <Menu className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                 )}
               </button>
             </div>

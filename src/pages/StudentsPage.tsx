@@ -135,49 +135,49 @@ export const StudentsPage = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Students</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1 md:mb-2">Students</h1>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
             Manage and view all registered students
           </p>
         </div>
-        <div className="bg-blue-100 dark:bg-blue-900/30 px-4 py-3 rounded-lg">
-          <p className="text-xl text-gray-600 dark:text-gray-400">Total Students</p>
-          <p className="text-4xl font-bold text-blue-600 dark:text-blue-400">
+        <div className="bg-blue-100 dark:bg-blue-900/30 px-3 md:px-4 py-2 md:py-3 rounded-lg w-full md:w-auto">
+          <p className="text-sm md:text-xl text-gray-600 dark:text-gray-400">Total Students</p>
+          <p className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400">
             {students.length}
           </p>
         </div>
       </div>
 
       {/* Student Analytics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-500 hover:scale-105 transition-all duration-300 cursor-pointer animate-slide-right">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-4 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-500 hover:scale-105 transition-all duration-300 cursor-pointer animate-slide-right">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded flex items-center justify-center">
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-blue-100 dark:bg-blue-900/30 rounded flex items-center justify-center">
               <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Gender Distribution</h3>
+            <h3 className="text-base md:text-xl font-semibold text-gray-800 dark:text-white">Gender Distribution</h3>
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between text-lg">
+            <div className="flex justify-between text-sm md:text-lg">
               <span className="text-gray-600 dark:text-gray-400">Male</span>
               <span className="font-medium text-gray-800 dark:text-white">{analytics.maleStudents}</span>
             </div>
-            <div className="flex justify-between text-lg">
+            <div className="flex justify-between text-sm md:text-lg">
               <span className="text-gray-600 dark:text-gray-400">Female</span>
               <span className="font-medium text-gray-800 dark:text-white">{analytics.femaleStudents}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-500 hover:scale-105 transition-all duration-300 cursor-pointer animate-slide-right">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 md:p-4 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-500 hover:scale-105 transition-all duration-300 cursor-pointer animate-slide-right">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center">
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-green-100 dark:bg-green-900/30 rounded flex items-center justify-center">
               <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Study Mode</h3>
+            <h3 className="text-base md:text-xl font-semibold text-gray-800 dark:text-white">Study Mode</h3>
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-lg">

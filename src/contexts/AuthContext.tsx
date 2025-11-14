@@ -36,7 +36,9 @@ export const useAuth = () => {
 // Mock authentication credentials (in a real app, this would be handled by the backend)
 const mockCredentials = [
   { username: 'admin', password: 'admin123' },
-  { username: 'clerk', password: 'clerk123' }
+  { username: 'clerk', password: 'clerk123' },
+  { username: 'superadmin', password: 'admin123' },
+  { username: 'clerk2', password: 'clerk123' }
 ];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {

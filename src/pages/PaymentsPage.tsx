@@ -151,7 +151,7 @@ export const PaymentsPage = () => {
               <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <span className="text-lg font-medium text-gray-800 dark:text-gray-300">Total Amount</span>
             </div>
-            <p className="text-[1.39rem] font-normal text-gray-900 dark:text-white">GH₵ {totalAmount.toLocaleString()}</p>
+            <p className="text-[1.13rem] md:text-[1.39rem] font-normal text-gray-900 dark:text-white">GH₵ {totalAmount.toLocaleString()}</p>
             <p className="text-base text-gray-600 dark:text-gray-400">All payments received</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
@@ -159,7 +159,7 @@ export const PaymentsPage = () => {
               <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />
               <span className="text-lg font-medium text-gray-800 dark:text-gray-300">Cash Payments</span>
             </div>
-            <p className="text-[1.39rem] font-normal text-gray-900 dark:text-white">GH₵ {totalCash.toLocaleString()}</p>
+            <p className="text-[1.13rem] md:text-[1.39rem] font-normal text-gray-900 dark:text-white">GH₵ {totalCash.toLocaleString()}</p>
             <p className="text-base text-gray-600 dark:text-gray-400">Physical cash received</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg hover:border-blue-500 dark:hover:border-blue-600 hover:scale-105 transition-all duration-300 cursor-pointer">
@@ -167,7 +167,7 @@ export const PaymentsPage = () => {
               <Smartphone className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               <span className="text-lg font-medium text-gray-800 dark:text-gray-300">MoMo Payments</span>
             </div>
-            <p className="text-[1.39rem] font-normal text-gray-900 dark:text-white">GH₵ {totalMomo.toLocaleString()}</p>
+            <p className="text-[1.13rem] md:text-[1.39rem] font-normal text-gray-900 dark:text-white">GH₵ {totalMomo.toLocaleString()}</p>
             <p className="text-base text-gray-600 dark:text-gray-400">Mobile money transfers</p>
           </div>
         </div>

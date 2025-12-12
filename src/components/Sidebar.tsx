@@ -84,13 +84,12 @@ export const Sidebar = () => {
     const analyticsItems = getAnalyticsItems();
 
     return (
-        <aside className={`fixed left-0 top-0 h-screen bg-white/30 dark:bg-gray-800/30 backdrop-blur-md border-r border-white/20 dark:border-gray-700/20 shadow-[4px_0_30px_rgba(0,0,0,0.15)] dark:shadow-[4px_0_30px_rgba(0,0,0,0.5)] transition-all duration-500 ease-in-out z-40 ${
-            // Mobile: Always collapsed, smaller width
-            // Tablet: Responsive width based on collapse state  
-            // Desktop: Full responsive behavior
+        <aside className={`hidden sm:fixed left-0 top-0 h-screen bg-white/30 dark:bg-gray-800/30 backdrop-blur-md border-r border-white/20 dark:border-gray-700/20 shadow-[4px_0_30px_rgba(0,0,0,0.15)] dark:shadow-[4px_0_30px_rgba(0,0,0,0.5)] transition-all duration-500 ease-in-out z-40 sm:block ${
+            // Mobile: Hidden completely
+            // Tablet+: Responsive width based on collapse state  
             isCollapsed
-                ? 'w-14 sm:w-16'
-                : 'w-64 sm:w-72 md:w-[15%] lg:w-[11%]'
+                ? 'sm:w-16'
+                : 'sm:w-72 md:w-[15%] lg:w-[11%]'
             }`}>
             <div className="flex flex-col h-full">
                 {/* Logo and Toggle Button */}

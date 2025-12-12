@@ -48,8 +48,8 @@ export const TopNavbar = () => {
   return (
     <>
       <nav className={`fixed top-0 ${isCollapsed
-        ? 'left-14 sm:left-16 md:left-16'
-        : 'left-64 sm:left-72 md:left-[15%] lg:left-[11%]'
+        ? 'left-0 sm:left-16 md:left-16'
+        : 'left-0 sm:left-72 md:left-[15%] lg:left-[11%]'
         } right-0 z-[9999] transition-all duration-500 ease-in-out pt-2 sm:pt-3 md:pt-4 px-2 sm:px-3 md:px-6 animate-fade-in`}>
         <div className="mx-auto px-2 sm:px-4 md:px-8 h-12 sm:h-14 md:h-16 relative rounded-[25px] sm:rounded-[35px] md:rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 flex items-center transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
           {/* Main Navigation - Centered - Responsive visibility */}

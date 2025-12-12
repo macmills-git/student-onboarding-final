@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSidebar } from '../contexts/SidebarContext';
 import { Moon, Sun, LogOut, X, Home, LayoutDashboard, UserCircle, GraduationCap, DollarSign, UserCog, Menu } from 'lucide-react';
 
 export const TopNavbar = () => {
   const { signOut, profile } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { isCollapsed } = useSidebar();
   const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -20,73 +22,92 @@ export const TopNavbar = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navItems = [
-    { path: '/home', label: 'Home', icon: Home },
-    { path: '/register', label: 'Register', icon: UserCircle },
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/students', label: 'Students', icon: GraduationCap },
-    { path: '/payments', label: 'Payments', icon: DollarSign },
-    { path: '/users', label: 'Users', icon: UserCog },
-  ];
+  // Define navigation items based on user role
+  const getNavItems = () => {
+    if (profile?.role === 'admin') {
+      return [
+        { path: '/home', label: 'Home', icon: Home },
+        { path: '/register', label: 'Register', icon: UserCircle },
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/students', label: 'Students', icon: GraduationCap },
+        { path: '/payments', label: 'Payments', icon: DollarSign },
+        { path: '/users', label: 'Users', icon: UserCog },
+      ];
+    } else {
+      // For clerks or any non-admin user, only show these items
+      return [
+        { path: '/home', label: 'Home', icon: Home },
+        { path: '/register', label: 'Register', icon: UserCircle },
+        { path: '/students', label: 'Students', icon: GraduationCap },
+      ];
+    }
+  };
+
+  const navItems = getNavItems();
 
   return (
     <>
-      <nav className="fixed top-0 left-0 md:left-[15%] lg:left-[11%] right-0 z-[9999] transition-all duration-500 ease-in-out pt-3 md:pt-4 px-3 md:px-6 animate-fade-in">
-        <div className="mx-auto px-4 md:px-8 h-14 md:h-16 relative rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 flex items-center transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
-          {/* Main Navigation - Centered - Hidden on mobile (sidebar handles mobile) */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:flex items-center gap-3 lg:gap-6">
+      <nav className={`fixed top-0 ${isCollapsed
+        ? 'left-14 sm:left-16 md:left-16'
+        : 'left-64 sm:left-72 md:left-[15%] lg:left-[11%]'
+        } right-0 z-[9999] transition-all duration-500 ease-in-out pt-2 sm:pt-3 md:pt-4 px-2 sm:px-3 md:px-6 animate-fade-in`}>
+        <div className="mx-auto px-2 sm:px-4 md:px-8 h-12 sm:h-14 md:h-16 relative rounded-[25px] sm:rounded-[35px] md:rounded-[50px] bg-white/30 dark:bg-gray-800/30 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.15)] dark:shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/20 dark:border-gray-700/20 flex items-center transition-all duration-500 ease-in-out transform-gpu animate-scale-in">
+          {/* Main Navigation - Centered - Responsive visibility */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 hidden sm:flex items-center gap-2 md:gap-3 lg:gap-6">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-3 lg:px-5 py-3 text-lg font-bold transition-all duration-300 relative transform hover:scale-105 hover:-translate-y-0.5 ${isActive(item.path)
+                  className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 lg:px-5 py-2 sm:py-3 text-sm sm:text-base lg:text-lg font-bold transition-all duration-300 relative transform hover:scale-105 hover:-translate-y-0.5 ${isActive(item.path)
                     ? 'text-gray-900 dark:text-white'
                     : 'text-gray-800 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg hover:shadow-md'
                     } ${isActive(item.path) ? 'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-500 after:animate-pulse' : ''}`}
                 >
-                  <Icon className={`w-5 h-5 transition-all duration-300 ${isActive(item.path) ? 'text-blue-500 animate-bounce' : 'hover:rotate-12'}`} />
-                  <span className="font-bold hidden xl:block">{item.label}</span>
+                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ${isActive(item.path) ? 'text-blue-500 animate-bounce' : 'hover:rotate-12'}`} />
+                  <span className="font-bold hidden md:block lg:block xl:block">{item.label}</span>
                 </Link>
               );
             })}
           </div>
 
+
+
           {/* Right Side Actions - Always visible */}
-          <div className="flex items-center gap-2 md:gap-6 absolute right-2 md:right-8">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-6 absolute right-1 sm:right-2 md:right-8">
             {/* Theme Toggle - Always visible */}
             <button
               onClick={toggleTheme}
-              className="p-2 md:p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 hover:shadow-lg"
+              className="p-1.5 sm:p-2 md:p-3 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 transform hover:scale-110 hover:rotate-12 hover:shadow-lg"
               title="Toggle theme"
             >
               {isDark ? (
-                <Sun className="w-4 h-4 md:w-5 md:h-5 text-yellow-500 animate-spin" />
+                <Sun className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-yellow-500 animate-spin" />
               ) : (
-                <Moon className="w-4 h-4 md:w-5 md:h-5 text-gray-600 animate-pulse" />
+                <Moon className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-600 animate-pulse" />
               )}
             </button>
 
             {/* Logout Button - Always visible */}
             <button
               onClick={handleSignOutClick}
-              className="p-2 md:p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
+              className="p-1.5 sm:p-2 md:p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
               title="Sign out"
             >
-              <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+              <LogOut className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
             </button>
 
-            {/* Mobile Menu Button - Only on mobile - Last item */}
-            <div className="md:hidden">
+            {/* Mobile Menu Button - Only on small screens */}
+            <div className="sm:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
+                className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  <X className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                 ) : (
-                  <Menu className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  <Menu className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                 )}
               </button>
             </div>
@@ -102,11 +123,11 @@ export const TopNavbar = () => {
         />
       )}
 
-      {/* MOBILE MENU SIDEBAR - Only on mobile */}
-      <div className={`fixed top-0 left-0 h-full w-64 z-[9999] md:hidden transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      {/* MOBILE MENU SIDEBAR - Only on small screens */}
+      <div className={`fixed top-0 left-0 h-full w-56 sm:w-64 z-[9999] sm:hidden transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
         <div className="h-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-md shadow-2xl border-r border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col h-full py-8 px-4">
+          <div className="flex flex-col h-full py-6 sm:py-8 px-3 sm:px-4">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -114,13 +135,13 @@ export const TopNavbar = () => {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 mb-2 ${isActive(item.path)
+                  className={`flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl transition-all duration-300 mb-1 sm:mb-2 ${isActive(item.path)
                     ? 'bg-blue-500/20 dark:bg-blue-500/30 text-blue-600 dark:text-blue-400 shadow-lg'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 >
-                  <Icon className={`w-6 h-6 ${isActive(item.path) ? 'text-blue-500' : ''}`} />
-                  <span className="text-base font-medium">{item.label}</span>
+                  <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${isActive(item.path) ? 'text-blue-500' : ''}`} />
+                  <span className="text-sm sm:text-base font-medium">{item.label}</span>
                 </Link>
               );
             })}

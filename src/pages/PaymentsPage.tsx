@@ -1,5 +1,5 @@
-import { useEffect, useState, FormEvent } from 'react';
-import { DollarSign, CreditCard, Smartphone, Plus, X, TrendingUp } from 'lucide-react';
+import { useEffect, useState, FormEvent, useRef } from 'react';
+import { DollarSign, CreditCard, Smartphone, Plus, X, TrendingUp, Download, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
 import { mockPayments, mockStudents, getUserAnalytics, Payment, Student } from '../lib/mockData';
 
 interface UserRevenue {
@@ -24,6 +24,8 @@ export const PaymentsPage = () => {
   });
 
   const [showAllPayments, setShowAllPayments] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const exportDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchPayments();
@@ -54,6 +56,515 @@ export const PaymentsPage = () => {
   const fetchStudents = async () => {
     // Use centralized mock data
     setStudents(mockStudents);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
+        setShowExportDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Export functions
+  const exportToCSV = () => {
+    const exportType = 'Complete';
+
+    // Calculate daily and weekly analytics
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const weekStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const todayPayments = payments.filter(p => new Date(p.payment_date) >= todayStart);
+    const weekPayments = payments.filter(p => new Date(p.payment_date) >= weekStart);
+
+    const todayAmount = todayPayments.reduce((sum, p) => sum + p.amount, 0);
+    const weekAmount = weekPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    // Generate daily breakdown for the last 7 days
+    const dailyBreakdown = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+      const dayPayments = payments.filter(p => {
+        const paymentDate = new Date(p.payment_date);
+        return paymentDate >= dayStart && paymentDate < dayEnd;
+      });
+
+      const dayAmount = dayPayments.reduce((sum, p) => sum + p.amount, 0);
+      const dayCash = dayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
+      const dayMomo = dayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+
+      dailyBreakdown.push({
+        date: date.toLocaleDateString(),
+        dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+        payments: dayPayments.length,
+        amount: dayAmount,
+        cash: dayCash,
+        momo: dayMomo,
+        isToday: i === 0
+      });
+    }
+
+    // Generate weekly breakdown for the last 4 weeks
+    const weeklyBreakdown = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekEndDate = new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const weekStartDate = new Date(weekEndDate.getTime() - 6 * 24 * 60 * 60 * 1000);
+
+      const weekPaymentsData = payments.filter(p => {
+        const paymentDate = new Date(p.payment_date);
+        return paymentDate >= weekStartDate && paymentDate <= weekEndDate;
+      });
+
+      const weekAmountData = weekPaymentsData.reduce((sum, p) => sum + p.amount, 0);
+      const weekCash = weekPaymentsData.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
+      const weekMomo = weekPaymentsData.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+
+      weeklyBreakdown.push({
+        weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
+        payments: weekPaymentsData.length,
+        amount: weekAmountData,
+        cash: weekCash,
+        momo: weekMomo,
+        dailyAverage: Math.round(weekAmountData / 7),
+        isCurrentWeek: i === 0
+      });
+    }
+
+    // Create comprehensive header with analytics
+    const exportInfo = [
+      `COMPSSA Payments Export - ${exportType}`,
+      `Export Date: ${new Date().toLocaleDateString()}`,
+      `Export Time: ${new Date().toLocaleTimeString()}`,
+      '',
+      '=== PAYMENT ANALYTICS ===',
+      `Total Records: ${payments.length}`,
+      `Total Amount: GH₵ ${totalAmount.toLocaleString()}`,
+      `Cash Payments: GH₵ ${totalCash.toLocaleString()} (${cashPayments.length} transactions)`,
+      `Mobile Money: GH₵ ${totalMomo.toLocaleString()} (${momoPayments.length} transactions)`,
+      `Average Payment: GH₵ ${payments.length > 0 ? Math.round(totalAmount / payments.length).toLocaleString() : '0'}`,
+      '',
+      '=== DAILY RECORDS (LAST 7 DAYS) ===',
+      ...dailyBreakdown.map(day => [
+        `${day.dayName} (${day.date})${day.isToday ? ' - TODAY' : ''}`,
+        `  Transactions: ${day.payments}`,
+        `  Total Revenue: GH₵ ${day.amount.toLocaleString()}`,
+        `  Cash: GH₵ ${day.cash.toLocaleString()}`,
+        `  Mobile Money: GH₵ ${day.momo.toLocaleString()}`,
+        `  Average per Transaction: GH₵ ${day.payments > 0 ? Math.round(day.amount / day.payments).toLocaleString() : '0'}`,
+        ''
+      ]).flat(),
+      '=== WEEKLY RECORDS (LAST 4 WEEKS) ===',
+      ...weeklyBreakdown.map((week, index) => [
+        `Week ${index + 1}: ${week.weekRange}${week.isCurrentWeek ? ' - CURRENT WEEK' : ''}`,
+        `  Transactions: ${week.payments}`,
+        `  Total Revenue: GH₵ ${week.amount.toLocaleString()}`,
+        `  Cash: GH₵ ${week.cash.toLocaleString()}`,
+        `  Mobile Money: GH₵ ${week.momo.toLocaleString()}`,
+        `  Daily Average: GH₵ ${week.dailyAverage.toLocaleString()}`,
+        `  Transaction Average: GH₵ ${week.payments > 0 ? Math.round(week.amount / week.payments).toLocaleString() : '0'}`,
+        ''
+      ]).flat(),
+      '=== TODAY\'S SUMMARY ===',
+      `Today's Payments: ${todayPayments.length} transactions`,
+      `Today's Revenue: GH₵ ${todayAmount.toLocaleString()}`,
+      `Today's Average: GH₵ ${todayPayments.length > 0 ? Math.round(todayAmount / todayPayments.length).toLocaleString() : '0'}`,
+      `Today's Cash: GH₵ ${todayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}`,
+      `Today's MoMo: GH₵ ${todayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}`,
+      '',
+      '=== PAYMENT METHOD BREAKDOWN ===',
+      `Cash: ${totalAmount > 0 ? Math.round((totalCash / totalAmount) * 100) : 0}% of total amount`,
+      `Mobile Money: ${totalAmount > 0 ? Math.round((totalMomo / totalAmount) * 100) : 0}% of total amount`,
+      '',
+      '=== REVENUE BY STAFF ===',
+      ...userRevenue.map(user => `${user.full_name}: GH₵ ${user.totalRevenue.toLocaleString()}`),
+      '',
+      '=== RECENT ACTIVITY ===',
+      `Latest Payment: ${payments.length > 0 ? new Date(payments[0].payment_date).toLocaleDateString() : 'N/A'}`,
+      `Oldest Payment: ${payments.length > 0 ? new Date(payments[payments.length - 1].payment_date).toLocaleDateString() : 'N/A'}`,
+      '',
+      '=== DETAILED PAYMENT DATA ===',
+    ];
+
+    const csvHeaders = [
+      'Payment ID',
+      'Student Name',
+      'Student ID',
+      'Amount (GH₵)',
+      'Payment Method',
+      'Reference ID',
+      'Operator',
+      'Payment Date',
+      'Recorded Date'
+    ];
+
+    const csvData = payments.map(payment => [
+      payment.id,
+      payment.student_name,
+      payment.student_id,
+      payment.amount,
+      payment.payment_method.toUpperCase(),
+      payment.reference_id,
+      payment.operator || 'N/A',
+      new Date(payment.payment_date).toLocaleDateString(),
+      new Date(payment.created_at).toLocaleDateString()
+    ]);
+
+    // Add summary section at the end
+    const summarySection = [
+      '',
+      '=== EXPORT SUMMARY ===',
+      `Total Payments Exported: ${payments.length}`,
+      `Export Generated: ${new Date().toLocaleString()}`,
+      `System: COMPSSA Student Management System`,
+      `Report Type: Complete Payment Records with Daily/Weekly Analytics`,
+      ''
+    ];
+
+    const csvContent = [
+      ...exportInfo,
+      csvHeaders.join(','),
+      ...csvData.map(row => row.map(field => `"${field}"`).join(',')),
+      ...summarySection
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+
+    const filename = `payments_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = () => {
+    const exportType = 'Complete Payments List';
+
+    // Calculate additional analytics
+    const avgPayment = payments.length > 0 ? Math.round(totalAmount / payments.length) : 0;
+    const cashPercentage = totalAmount > 0 ? Math.round((totalCash / totalAmount) * 100) : 0;
+    const momoPercentage = totalAmount > 0 ? Math.round((totalMomo / totalAmount) * 100) : 0;
+
+    // Calculate daily and weekly analytics (same as CSV)
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const weekStart = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const todayPayments = payments.filter(p => new Date(p.payment_date) >= todayStart);
+    const weekPayments = payments.filter(p => new Date(p.payment_date) >= weekStart);
+
+    const todayAmount = todayPayments.reduce((sum, p) => sum + p.amount, 0);
+    const weekAmount = weekPayments.reduce((sum, p) => sum + p.amount, 0);
+
+    // Generate daily breakdown for the last 7 days
+    const dailyBreakdown = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+      const dayPayments = payments.filter(p => {
+        const paymentDate = new Date(p.payment_date);
+        return paymentDate >= dayStart && paymentDate < dayEnd;
+      });
+
+      const dayAmount = dayPayments.reduce((sum, p) => sum + p.amount, 0);
+      const dayCash = dayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
+      const dayMomo = dayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+
+      dailyBreakdown.push({
+        date: date.toLocaleDateString(),
+        dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+        payments: dayPayments.length,
+        amount: dayAmount,
+        cash: dayCash,
+        momo: dayMomo,
+        isToday: i === 0
+      });
+    }
+
+    // Generate weekly breakdown for the last 4 weeks
+    const weeklyBreakdown = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekEndDate = new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const weekStartDate = new Date(weekEndDate.getTime() - 6 * 24 * 60 * 60 * 1000);
+
+      const weekPaymentsData = payments.filter(p => {
+        const paymentDate = new Date(p.payment_date);
+        return paymentDate >= weekStartDate && paymentDate <= weekEndDate;
+      });
+
+      const weekAmountData = weekPaymentsData.reduce((sum, p) => sum + p.amount, 0);
+      const weekCash = weekPaymentsData.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
+      const weekMomo = weekPaymentsData.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+
+      weeklyBreakdown.push({
+        weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
+        payments: weekPaymentsData.length,
+        amount: weekAmountData,
+        cash: weekCash,
+        momo: weekMomo,
+        dailyAverage: Math.round(weekAmountData / 7),
+        isCurrentWeek: i === 0
+      });
+    }
+
+    // Create comprehensive HTML content for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${exportType}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
+          h1 { color: #1f2937; text-align: center; margin-bottom: 10px; font-size: 24px; }
+          h2 { color: #374151; font-size: 16px; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 11px; }
+          th { background-color: #f3f4f6; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9fafb; }
+          .header { text-align: center; margin-bottom: 25px; }
+          .export-info { font-size: 13px; color: #374151; margin-bottom: 5px; }
+          .export-type { font-size: 16px; color: #1f2937; font-weight: bold; margin-bottom: 10px; }
+          .amount { text-align: right; font-weight: bold; }
+          .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+          .analytics-card { border: 1px solid #d1d5db; padding: 15px; border-radius: 8px; background-color: #f9fafb; }
+          .analytics-title { font-weight: bold; color: #374151; margin-bottom: 10px; font-size: 14px; }
+          .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+          .stat-label { color: #6b7280; }
+          .stat-value { font-weight: bold; color: #1f2937; }
+          .revenue-table { margin-top: 10px; }
+          .revenue-table th, .revenue-table td { padding: 4px 8px; font-size: 11px; }
+          .page-break { page-break-before: always; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>COMPSSA - ${exportType}</h1>
+          <div class="export-type">💰 Complete Export with Analytics</div>
+          <div class="export-info">
+            Export Date: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}<br>
+            Generated by COMPSSA Student Management System
+          </div>
+        </div>
+
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-title">📊 Payment Summary</div>
+            <div class="stat-row">
+              <span class="stat-label">Total Records:</span>
+              <span class="stat-value">${payments.length}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Total Amount:</span>
+              <span class="stat-value">GH₵ ${totalAmount.toLocaleString()}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Average Payment:</span>
+              <span class="stat-value">GH₵ ${avgPayment.toLocaleString()}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Date Range:</span>
+              <span class="stat-value">${payments.length > 0 ? new Date(Math.min(...payments.map(p => new Date(p.payment_date).getTime()))).toLocaleDateString() : 'N/A'} - ${payments.length > 0 ? new Date(Math.max(...payments.map(p => new Date(p.payment_date).getTime()))).toLocaleDateString() : 'N/A'}</span>
+            </div>
+          </div>
+
+          <div class="analytics-card">
+            <div class="analytics-title">💳 Payment Methods</div>
+            <div class="stat-row">
+              <span class="stat-label">Cash Payments:</span>
+              <span class="stat-value">GH₵ ${totalCash.toLocaleString()} (${cashPercentage}%)</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Cash Transactions:</span>
+              <span class="stat-value">${cashPayments.length}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Mobile Money:</span>
+              <span class="stat-value">GH₵ ${totalMomo.toLocaleString()} (${momoPercentage}%)</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">MoMo Transactions:</span>
+              <span class="stat-value">${momoPayments.length}</span>
+            </div>
+          </div>
+        </div>
+
+        <h2>👥 Revenue by Staff Member</h2>
+        <table class="revenue-table">
+          <thead>
+            <tr>
+              <th>Staff Member</th>
+              <th>Total Revenue</th>
+              <th>Percentage of Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${userRevenue.map(user => `
+              <tr>
+                <td>${user.full_name}</td>
+                <td class="amount">GH₵ ${user.totalRevenue.toLocaleString()}</td>
+                <td>${totalAmount > 0 ? Math.round((user.totalRevenue / totalAmount) * 100) : 0}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <h2>📅 Daily Records (Last 7 Days)</h2>
+        <table class="revenue-table">
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Transactions</th>
+              <th>Total Revenue</th>
+              <th>Cash</th>
+              <th>Mobile Money</th>
+              <th>Avg per Transaction</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dailyBreakdown.map(day => `
+              <tr style="${day.isToday ? 'background-color: #dbeafe; font-weight: bold;' : ''}">
+                <td>${day.dayName}${day.isToday ? ' (TODAY)' : ''}</td>
+                <td>${day.date}</td>
+                <td>${day.payments}</td>
+                <td class="amount">GH₵ ${day.amount.toLocaleString()}</td>
+                <td class="amount">GH₵ ${day.cash.toLocaleString()}</td>
+                <td class="amount">GH₵ ${day.momo.toLocaleString()}</td>
+                <td class="amount">GH₵ ${day.payments > 0 ? Math.round(day.amount / day.payments).toLocaleString() : '0'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <h2>📊 Weekly Records (Last 4 Weeks)</h2>
+        <table class="revenue-table">
+          <thead>
+            <tr>
+              <th>Week Period</th>
+              <th>Transactions</th>
+              <th>Total Revenue</th>
+              <th>Cash</th>
+              <th>Mobile Money</th>
+              <th>Daily Average</th>
+              <th>Transaction Average</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${weeklyBreakdown.map((week, index) => `
+              <tr style="${week.isCurrentWeek ? 'background-color: #dcfce7; font-weight: bold;' : ''}">
+                <td>Week ${index + 1}: ${week.weekRange}${week.isCurrentWeek ? ' (CURRENT)' : ''}</td>
+                <td>${week.payments}</td>
+                <td class="amount">GH₵ ${week.amount.toLocaleString()}</td>
+                <td class="amount">GH₵ ${week.cash.toLocaleString()}</td>
+                <td class="amount">GH₵ ${week.momo.toLocaleString()}</td>
+                <td class="amount">GH₵ ${week.dailyAverage.toLocaleString()}</td>
+                <td class="amount">GH₵ ${week.payments > 0 ? Math.round(week.amount / week.payments).toLocaleString() : '0'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <h2>📈 Today's Summary</h2>
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <div class="analytics-title">🎯 Today's Performance</div>
+            <div class="stat-row">
+              <span class="stat-label">Transactions Today:</span>
+              <span class="stat-value">${todayPayments.length}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Revenue Today:</span>
+              <span class="stat-value">GH₵ ${todayAmount.toLocaleString()}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Average per Transaction:</span>
+              <span class="stat-value">GH₵ ${todayPayments.length > 0 ? Math.round(todayAmount / todayPayments.length).toLocaleString() : '0'}</span>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <div class="analytics-title">💰 Today's Payment Methods</div>
+            <div class="stat-row">
+              <span class="stat-label">Cash Today:</span>
+              <span class="stat-value">GH₵ ${todayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Mobile Money Today:</span>
+              <span class="stat-value">GH₵ ${todayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Comparison to Week Avg:</span>
+              <span class="stat-value">${weekPayments.length > 0 ? Math.round((todayAmount / (weekAmount / 7)) * 100) : 0}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-break"></div>
+        <h2>💰 Detailed Payment Records</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Student Name</th>
+              <th>Student ID</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Reference</th>
+              <th>Operator</th>
+              <th>Payment Date</th>
+              <th>Recorded Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${payments.map(payment => `
+              <tr>
+                <td>${payment.id}</td>
+                <td>${payment.student_name}</td>
+                <td>${payment.student_id}</td>
+                <td class="amount">GH₵ ${payment.amount.toLocaleString()}</td>
+                <td>${payment.payment_method.toUpperCase()}</td>
+                <td>${payment.reference_id}</td>
+                <td>${payment.operator || 'N/A'}</td>
+                <td>${new Date(payment.payment_date).toLocaleDateString()}</td>
+                <td>${new Date(payment.created_at).toLocaleDateString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 11px;">
+          <p>This report was generated by COMPSSA Student Management System</p>
+          <p>For questions about this data, contact the system administrator</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
   };
 
   const handleAddPayment = async (e: FormEvent) => {
@@ -122,16 +633,63 @@ export const PaymentsPage = () => {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-1 md:mb-2">Payments</h1>
           <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-            Track and manage payment records
+            Track and manage payment records ({payments.length} total)
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md w-full md:w-auto"
-        >
-          <Plus className="w-4 h-4 md:w-5 md:h-5" />
-          Add Payment
-        </button>
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+          {/* Export Dropdown */}
+          <div className="relative" ref={exportDropdownRef}>
+            <button
+              onClick={() => setShowExportDropdown(!showExportDropdown)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all shadow-md text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Export
+              <ChevronDown className={`w-4 h-4 transition-transform ${showExportDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showExportDropdown && (
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                <div className="py-2">
+                  <button
+                    onClick={() => {
+                      exportToCSV();
+                      setShowExportDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-green-500" />
+                    <div className="text-left">
+                      <div className="font-medium">Export as CSV</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Spreadsheet format</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      exportToPDF();
+                      setShowExportDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-red-500" />
+                    <div className="text-left">
+                      <div className="font-medium">Export as PDF</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Printable document</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-2.5 text-sm md:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md"
+          >
+            <Plus className="w-4 h-4 md:w-5 md:h-5" />
+            Add Payment
+          </button>
+        </div>
       </div>
 
 

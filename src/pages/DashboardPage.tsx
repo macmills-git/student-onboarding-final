@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   Users, DollarSign, TrendingUp, UserPlus,
-  CreditCard, BarChart3, Activity, PieChart, GraduationCap
+  CreditCard, BarChart3, Activity, PieChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {

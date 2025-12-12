@@ -28,14 +28,28 @@ export const Layout = ({ children }: LayoutProps) => {
   };
   const handleCancelSignOut = () => setShowLogoutModal(false);
 
-  const navItems = [
-    { path: '/home', label: 'Home', icon: Home },
-    { path: '/register', label: 'Register', icon: UserCircle },
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/students', label: 'Students', icon: GraduationCap },
-    { path: '/payments', label: 'Payments', icon: DollarSign },
-    { path: '/users', label: 'Users', icon: UserCog },
-  ];
+  // Define navigation items based on user role
+  const getNavItems = () => {
+    if (profile?.role === 'admin') {
+      return [
+        { path: '/home', label: 'Home', icon: Home },
+        { path: '/register', label: 'Register', icon: UserCircle },
+        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { path: '/students', label: 'Students', icon: GraduationCap },
+        { path: '/payments', label: 'Payments', icon: DollarSign },
+        { path: '/users', label: 'Users', icon: UserCog },
+      ];
+    } else {
+      // For clerks or any non-admin user, only show these items
+      return [
+        { path: '/home', label: 'Home', icon: Home },
+        { path: '/register', label: 'Register', icon: UserCircle },
+        { path: '/students', label: 'Students', icon: GraduationCap },
+      ];
+    }
+  };
+
+  const navItems = getNavItems();
 
   return (
     <div className={`min-h-screen ${isDark ? 'dark' : ''}`}>
@@ -81,15 +95,6 @@ export const Layout = ({ children }: LayoutProps) => {
 
               {/* Actions - far right - Always visible */}
               <div className="flex items-center gap-2 md:gap-6 ml-auto">
-                {profile && (
-                  <div className={`hidden md:block px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold ${profile.role === 'admin'
-                    ? 'bg-blue-900/30 text-white border border-blue-800'
-                    : 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800'
-                    }`}>
-                    {profile.role === 'admin' ? 'Admin' : '👤 Clerk'}
-                  </div>
-                )}
-
                 {/* Theme toggle - Always visible */}
                 <button
                   onClick={toggleTheme}

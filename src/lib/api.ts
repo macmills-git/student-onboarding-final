@@ -76,6 +76,9 @@ const getAuthToken = (): string | null => {
 const generateMockData = (endpoint: string, method: string = 'GET'): any => {
     // Mock students data
     if (endpoint.includes('/students')) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
         return {
             success: true,
             data: [
@@ -90,8 +93,8 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
                     study_mode: 'regular',
                     residential_status: 'resident',
                     registered_by: 'mcmills',
-                    created_at: '2024-01-15T10:30:00Z',
-                    updated_at: '2024-01-15T10:30:00Z'
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    updated_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
                 },
                 {
                     id: '2',
@@ -104,8 +107,50 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
                     study_mode: 'regular',
                     residential_status: 'non-resident',
                     registered_by: 'clerk',
-                    created_at: '2024-01-16T14:20:00Z',
-                    updated_at: '2024-01-16T14:20:00Z'
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    updated_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
+                },
+                {
+                    id: '3',
+                    student_id: 'STU003',
+                    name: 'Michael Johnson',
+                    email: 'michael.johnson@example.com',
+                    phone: '+233555123456',
+                    course: 'Mathematical Science',
+                    level: '400',
+                    study_mode: 'regular',
+                    residential_status: 'resident',
+                    registered_by: 'mcmills',
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    updated_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
+                },
+                {
+                    id: '4',
+                    student_id: 'STU004',
+                    name: 'Sarah Wilson',
+                    email: 'sarah.wilson@example.com',
+                    phone: '+233777987654',
+                    course: 'Actuarial Science',
+                    level: '200',
+                    study_mode: 'regular',
+                    residential_status: 'non-resident',
+                    registered_by: 'clerk',
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    updated_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
+                },
+                {
+                    id: '5',
+                    student_id: 'STU005',
+                    name: 'David Brown',
+                    email: 'david.brown@example.com',
+                    phone: '+233666555444',
+                    course: 'Physical Science',
+                    level: '300',
+                    study_mode: 'distance',
+                    residential_status: 'non-resident',
+                    registered_by: 'mcmills',
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    updated_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
                 }
             ]
         };
@@ -113,6 +158,9 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
 
     // Mock payments data
     if (endpoint.includes('/payments')) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
         return {
             success: true,
             data: [
@@ -120,13 +168,37 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
                     id: '1',
                     student_id: '1',
                     student_name: 'John Doe',
-                    amount: 1500.00,
+                    amount: 2500.00,
                     payment_method: 'momo',
                     reference_id: 'PAY001',
                     operator: 'MTN',
                     recorded_by: 'mcmills',
-                    payment_date: '2024-01-15T10:30:00Z',
-                    created_at: '2024-01-15T10:30:00Z'
+                    payment_date: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
+                },
+                {
+                    id: '2',
+                    student_id: '2',
+                    student_name: 'Jane Smith',
+                    amount: 1800.00,
+                    payment_method: 'cash',
+                    reference_id: 'PAY002',
+                    operator: null,
+                    recorded_by: 'clerk',
+                    payment_date: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
+                },
+                {
+                    id: '3',
+                    student_id: '3',
+                    student_name: 'Michael Johnson',
+                    amount: 3200.00,
+                    payment_method: 'bank',
+                    reference_id: 'PAY003',
+                    operator: 'GCB Bank',
+                    recorded_by: 'mcmills',
+                    payment_date: new Date(today.getTime() + Math.random() * 86400000).toISOString(),
+                    created_at: new Date(today.getTime() + Math.random() * 86400000).toISOString()
                 }
             ]
         };
@@ -162,19 +234,53 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
     }
 
     // Mock analytics data
+    if (endpoint.includes('/analytics/dashboard')) {
+        return {
+            success: true,
+            data: {
+                totalStudents: 1247,
+                totalRevenue: 186750.00,
+                activeUsers: 3,
+                recentRegistrations: 12,
+                paymentMethods: {
+                    momo: 45,
+                    cash: 23,
+                    bank: 18
+                }
+            }
+        };
+    }
+
+    if (endpoint.includes('/analytics/users')) {
+        return {
+            success: true,
+            data: [
+                {
+                    user_id: '1',
+                    full_name: 'McMills User',
+                    registeredToday: 5,
+                    revenueToday: 7500.00,
+                    registeredThisWeek: 28
+                },
+                {
+                    user_id: '2',
+                    full_name: 'System Clerk',
+                    registeredToday: 3,
+                    revenueToday: 4500.00,
+                    registeredThisWeek: 18
+                }
+            ]
+        };
+    }
+
     if (endpoint.includes('/analytics')) {
         return {
             success: true,
             data: {
-                totalStudents: 2,
-                totalPayments: 1,
-                totalRevenue: 1500.00,
-                recentRegistrations: 2,
-                paymentMethods: {
-                    momo: 1,
-                    cash: 0,
-                    bank: 0
-                }
+                totalStudents: 1247,
+                totalPayments: 86,
+                totalRevenue: 186750.00,
+                recentRegistrations: 12
             }
         };
     }

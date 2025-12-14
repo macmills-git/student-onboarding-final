@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, Check, User, GraduationCap, DollarSign, FileText, Activity, Phone, Mail, CreditCard, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { mockStudents, mockPayments, Student, Payment } from '../lib/mockData';
+import { useData, Student, Payment } from '../contexts/DataContext';
 
 interface PersonalDetails {
   name: string;
@@ -28,6 +28,7 @@ interface FinancialDetails {
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
+  const { students, addStudent, addPayment } = useData();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,43 +96,41 @@ export const RegisterPage = () => {
     try {
       // Create new student record
       const newStudent: Student = {
-        id: (mockStudents.length + 1).toString(),
+        id: String(Date.now()),
         student_id: personalDetails.student_id,
         name: personalDetails.name,
         email: personalDetails.email,
-        gender: personalDetails.gender,
-        nationality: personalDetails.nationality,
-        phone_number: personalDetails.phone_number,
+        phone: personalDetails.phone_number,
         course: academicDetails.course,
         level: academicDetails.level,
         study_mode: academicDetails.study_mode,
         residential_status: academicDetails.residential_status,
-        registered_by: '1', // Current user ID
+        registered_by: 'mcmills', // Current user
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
+      // Add student to shared context
+      addStudent(newStudent);
+
       // Create payment record if amount is provided
       if (financialDetails.amount && parseFloat(financialDetails.amount) > 0) {
         const newPayment: Payment = {
-          id: (mockPayments.length + 1).toString(),
+          id: String(Date.now() + 1),
           student_id: newStudent.id,
           student_name: newStudent.name,
           amount: parseFloat(financialDetails.amount),
           payment_method: financialDetails.payment_method,
           reference_id: financialDetails.reference_id,
-          operator: financialDetails.operator || undefined,
-          recorded_by: '1', // Current user ID
+          operator: financialDetails.operator || '',
+          recorded_by: 'mcmills', // Current user
           payment_date: new Date().toISOString(),
           created_at: new Date().toISOString()
         };
 
-        // Add to mock data (in a real app, this would be API calls)
-        mockPayments.unshift(newPayment);
+        // Add payment to shared context
+        addPayment(newPayment);
       }
-
-      // Add student to mock data
-      mockStudents.unshift(newStudent);
 
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));

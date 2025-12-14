@@ -4,7 +4,7 @@ import {
   CreditCard, BarChart3, Activity, PieChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { analyticsApi, studentsApi, paymentsApi } from '../lib/api';
+// Frontend-only dashboard - no API imports needed
 
 interface DashboardStats {
   totalStudents: number;
@@ -131,56 +131,80 @@ export const DashboardPage = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    try {
-      // Get dashboard stats from API
-      const dashboardResponse = await analyticsApi.getDashboardStats();
-      if (dashboardResponse.success && dashboardResponse.data) {
-        setStats({
-          totalStudents: dashboardResponse.data.totalStudents,
-          totalRevenue: dashboardResponse.data.totalRevenue,
-          activeUsers: dashboardResponse.data.activeUsers
-        });
-      }
+    // Frontend-only: Use static data directly (no API calls)
 
-      // Get user analytics from API
-      const analyticsResponse = await analyticsApi.getUserAnalytics();
-      if (analyticsResponse.success && analyticsResponse.data) {
-        setUserAnalytics(analyticsResponse.data);
-      }
+    // Set dashboard stats
+    setStats({
+      totalStudents: 1247,
+      totalRevenue: 186750.00,
+      activeUsers: 3,
+    });
 
-      // Get recent students from API
-      const studentsResponse = await studentsApi.getAll();
-      if (studentsResponse.success && studentsResponse.data) {
-        const recentStudentsData = studentsResponse.data.slice(0, 5);
-        setRecentStudents(
-          recentStudentsData.map(student => ({
-            id: student.id,
-            type: 'student' as const,
-            name: student.name,
-            timestamp: student.created_at
-          }))
-        );
+    // Set user analytics
+    setUserAnalytics([
+      {
+        user_id: '1',
+        full_name: 'McMills User',
+        registeredToday: 5,
+        revenueToday: 7500.00,
+        registeredThisWeek: 28,
+        totalRevenue: 125000.00
+      },
+      {
+        user_id: '2',
+        full_name: 'System Clerk',
+        registeredToday: 3,
+        revenueToday: 4500.00,
+        registeredThisWeek: 18,
+        totalRevenue: 61750.00
       }
+    ]);
 
-      // Get recent payments from API
-      const paymentsResponse = await paymentsApi.getAll();
-      if (paymentsResponse.success && paymentsResponse.data) {
-        const recentPaymentsData = paymentsResponse.data.slice(0, 5);
-        setRecentPayments(
-          recentPaymentsData.map(payment => ({
-            id: payment.id,
-            type: 'payment' as const,
-            name: payment.student_name,
-            amount: payment.amount,
-            timestamp: payment.created_at
-          }))
-        );
+    // Set recent students
+    const today = new Date();
+    setRecentStudents([
+      {
+        id: '1',
+        type: 'student' as const,
+        name: 'John Doe',
+        timestamp: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+      },
+      {
+        id: '2',
+        type: 'student' as const,
+        name: 'Jane Smith',
+        timestamp: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
+      },
+      {
+        id: '3',
+        type: 'student' as const,
+        name: 'Michael Johnson',
+        timestamp: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString() // 6 hours ago
       }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
+    ]);
+
+    // Set recent payments
+    setRecentPayments([
+      {
+        id: '1',
+        type: 'payment' as const,
+        name: 'John Doe',
+        amount: 2500.00,
+        timestamp: new Date(today.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
+      },
+      {
+        id: '2',
+        type: 'payment' as const,
+        name: 'Jane Smith',
+        amount: 1800.00,
+        timestamp: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString() // 3 hours ago
+      }
+    ]);
+
+    // Simulate loading delay for better UX
+    setTimeout(() => {
       setLoading(false);
-    }
+    }, 500);
   };
 
   if (loading) {

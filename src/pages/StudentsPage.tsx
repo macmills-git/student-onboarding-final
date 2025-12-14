@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2, Download, FileText, FileSpreadsheet } from 'lucide-react';
-import { studentsApi, Student } from '../lib/api';
+import { useData, Student } from '../contexts/DataContext';
 
 export const StudentsPage = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const { students, updateStudent, deleteStudent } = useData();
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,24 +39,11 @@ export const StudentsPage = () => {
   }, []);
 
   const fetchStudents = async () => {
-    try {
-      // Use real API to fetch students
-      const response = await studentsApi.getAll();
-
-      if (response.success && response.data) {
-        console.log('Loading students from API:', response.data.length);
-        setStudents(response.data);
-      } else {
-        console.error('Failed to fetch students:', response.error);
-        setStudents([]);
-      }
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      // Set empty array as fallback
-      setStudents([]);
-    } finally {
+    // Frontend-only: Data comes from shared context
+    // Simulate loading delay
+    setTimeout(() => {
       setLoading(false);
-    }
+    }, 300);
   };
 
   const filterAndSortStudents = () => {
@@ -90,27 +77,17 @@ export const StudentsPage = () => {
   };
 
   const handleEdit = async (student: Student) => {
-    try {
-      // Update the student via API
-      const response = await studentsApi.update(student.id, student);
+    // Frontend-only: Update student in shared context
 
-      if (response.success && response.data) {
-        alert(`Student ${student.name} updated successfully!`);
+    const updatedStudent = {
+      ...student,
+      updated_at: new Date().toISOString()
+    };
 
-        // Update state directly to trigger re-render
-        setStudents(students.map(s =>
-          s.id === student.id ? response.data : s
-        ));
-
-        setIsEditing(false);
-        setSelectedStudent(null);
-      } else {
-        alert(`Failed to update student: ${response.error}`);
-      }
-    } catch (error) {
-      console.error('Error updating student:', error);
-      alert('Failed to update student. Please try again.');
-    }
+    updateStudent(student.id, updatedStudent);
+    alert(`Student ${student.name} updated successfully!`);
+    setIsEditing(false);
+    setSelectedStudent(null);
   };
 
   const handleDelete = async (studentId: string, studentName: string) => {
@@ -118,22 +95,9 @@ export const StudentsPage = () => {
       return;
     }
 
-    try {
-      // Delete student via API
-      const response = await studentsApi.delete(studentId);
-
-      if (response.success) {
-        alert(`Student ${studentName} deleted successfully!`);
-
-        // Update state directly to trigger re-render
-        setStudents(students.filter(s => s.id !== studentId));
-      } else {
-        alert(`Failed to delete student: ${response.error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting student:', error);
-      alert('Failed to delete student. Please try again.');
-    }
+    // Frontend-only: Remove student from shared context
+    deleteStudent(studentId);
+    alert(`Student ${studentName} deleted successfully!`);
   };
 
   const courses = Array.from(new Set(students.map((s) => s.course || 'Unknown')));

@@ -117,11 +117,11 @@ export const LoginPage = () => {
 
           <div className="text-center space-y-1.5">
             <p className="text-sm text-gray-300 dark:text-gray-400">
-              Demo Credentials
+              Demo Mode - No Backend Required
             </p>
             <div className="text-sm text-gray-400 space-y-0.5">
-              <p><span className="text-blue-300">mcmills</span> / <span className="text-blue-300">mcmills1</span></p>
-              <p><span className="text-green-300">clerk</span> / <span className="text-green-300">Clerk123!</span></p>
+              <p><span className="text-blue-300">mcmills</span> / <span className="text-blue-300">mcmills1</span> (Admin)</p>
+              <p><span className="text-green-300">clerk</span> / <span className="text-green-300">Clerk123!</span> (Clerk)</p>
             </div>
             <button
               onClick={() => {
@@ -130,8 +130,11 @@ export const LoginPage = () => {
               }}
               className="text-xs text-blue-400 hover:text-blue-300 underline"
             >
-              Auto-fill mcmills credentials
+              Auto-fill admin credentials
             </button>
+            <p className="text-xs text-gray-500 mt-2">
+              ✨ Frontend-only demo with mock data
+            </p>
           </div>
 
           <div className="pt-3 border-t border-white/10">

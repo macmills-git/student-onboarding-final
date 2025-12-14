@@ -1,6 +1,9 @@
 // API service layer for connecting frontend to backend
 const API_BASE_URL = '/api';
 
+// Mock data for demo purposes (no backend required)
+const MOCK_MODE = true; // Set to false when backend is deployed
+
 // Types
 export interface ApiResponse<T> {
     success: boolean;
@@ -69,11 +72,135 @@ const getAuthToken = (): string | null => {
     return localStorage.getItem('token');
 };
 
+// Mock data generator
+const generateMockData = (endpoint: string, method: string = 'GET'): any => {
+    // Mock students data
+    if (endpoint.includes('/students')) {
+        return {
+            success: true,
+            data: [
+                {
+                    id: '1',
+                    student_id: 'STU001',
+                    name: 'John Doe',
+                    email: 'john.doe@example.com',
+                    phone: '+233123456789',
+                    course: 'Computer Science',
+                    level: '300',
+                    study_mode: 'regular',
+                    residential_status: 'resident',
+                    registered_by: 'mcmills',
+                    created_at: '2024-01-15T10:30:00Z',
+                    updated_at: '2024-01-15T10:30:00Z'
+                },
+                {
+                    id: '2',
+                    student_id: 'STU002',
+                    name: 'Jane Smith',
+                    email: 'jane.smith@example.com',
+                    phone: '+233987654321',
+                    course: 'Information Technology',
+                    level: '200',
+                    study_mode: 'regular',
+                    residential_status: 'non-resident',
+                    registered_by: 'clerk',
+                    created_at: '2024-01-16T14:20:00Z',
+                    updated_at: '2024-01-16T14:20:00Z'
+                }
+            ]
+        };
+    }
+
+    // Mock payments data
+    if (endpoint.includes('/payments')) {
+        return {
+            success: true,
+            data: [
+                {
+                    id: '1',
+                    student_id: '1',
+                    student_name: 'John Doe',
+                    amount: 1500.00,
+                    payment_method: 'momo',
+                    reference_id: 'PAY001',
+                    operator: 'MTN',
+                    recorded_by: 'mcmills',
+                    payment_date: '2024-01-15T10:30:00Z',
+                    created_at: '2024-01-15T10:30:00Z'
+                }
+            ]
+        };
+    }
+
+    // Mock users data
+    if (endpoint.includes('/users')) {
+        return {
+            success: true,
+            data: [
+                {
+                    id: '1',
+                    username: 'mcmills',
+                    full_name: 'McMills User',
+                    role: 'admin',
+                    permissions: {},
+                    is_active: true,
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-01T00:00:00Z'
+                },
+                {
+                    id: '2',
+                    username: 'clerk',
+                    full_name: 'System Clerk',
+                    role: 'clerk',
+                    permissions: {},
+                    is_active: true,
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-01T00:00:00Z'
+                }
+            ]
+        };
+    }
+
+    // Mock analytics data
+    if (endpoint.includes('/analytics')) {
+        return {
+            success: true,
+            data: {
+                totalStudents: 2,
+                totalPayments: 1,
+                totalRevenue: 1500.00,
+                recentRegistrations: 2,
+                paymentMethods: {
+                    momo: 1,
+                    cash: 0,
+                    bank: 0
+                }
+            }
+        };
+    }
+
+    // Default mock response
+    return {
+        success: true,
+        data: {},
+        message: 'Mock response'
+    };
+};
+
 // Helper function to make authenticated requests
 const makeRequest = async <T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<ApiResponse<T>> => {
+    // Use mock data if in mock mode
+    if (MOCK_MODE) {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const method = options.method || 'GET';
+        return generateMockData(endpoint, method);
+    }
+
     const token = getAuthToken();
 
     const config: RequestInit = {

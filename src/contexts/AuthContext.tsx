@@ -54,29 +54,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (username: string, password: string) => {
     try {
-      // Use the real API for authentication
-      const response = await authApi.login({ username, password });
+      // Mock authentication for demo purposes (no backend required)
+      const mockUsers = [
+        {
+          id: '1',
+          username: 'mcmills',
+          password: 'mcmills1',
+          full_name: 'McMills User',
+          role: 'admin' as const
+        },
+        {
+          id: '2',
+          username: 'admin',
+          password: 'Admin123!',
+          full_name: 'System Administrator',
+          role: 'admin' as const
+        },
+        {
+          id: '3',
+          username: 'clerk',
+          password: 'Clerk123!',
+          full_name: 'System Clerk',
+          role: 'clerk' as const
+        }
+      ];
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Login failed');
+      // Find matching user
+      const mockUser = mockUsers.find(
+        u => u.username === username && u.password === password
+      );
+
+      if (!mockUser) {
+        throw new Error('Invalid username or password');
       }
 
-      const { accessToken, refreshToken, user: apiUser } = response.data;
+      // Create mock token
+      const mockToken = `mock-jwt-token-${Date.now()}`;
 
-      // Store tokens
-      localStorage.setItem('token', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      // Store mock token
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('refreshToken', `refresh-${mockToken}`);
 
       const user: User = {
-        id: apiUser.id,
-        email: `${apiUser.username}@system.local`
+        id: mockUser.id,
+        email: `${mockUser.username}@system.local`
       };
 
       const profile: UserProfile = {
-        id: apiUser.id,
-        username: apiUser.username,
-        full_name: apiUser.full_name,
-        role: apiUser.role,
+        id: mockUser.id,
+        username: mockUser.username,
+        full_name: mockUser.full_name,
+        role: mockUser.role,
         permissions: {},
         is_active: true
       };

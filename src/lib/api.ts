@@ -73,11 +73,64 @@ const getAuthToken = (): string | null => {
 };
 
 // Mock data generator
-const generateMockData = (endpoint: string, method: string = 'GET'): any => {
+const generateMockData = (endpoint: string, method: string = 'GET', body?: any): any => {
     // Mock students data
     if (endpoint.includes('/students')) {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (method === 'POST') {
+            // Create new student
+            const newStudent = {
+                id: String(Date.now()),
+                student_id: body?.student_id || `STU${String(Date.now()).slice(-3)}`,
+                name: body?.name || 'New Student',
+                email: body?.email || 'student@example.com',
+                phone: body?.phone || '+233000000000',
+                course: body?.course || 'Computer Science',
+                level: body?.level || '100',
+                study_mode: body?.study_mode || 'regular',
+                residential_status: body?.residential_status || 'resident',
+                registered_by: 'mcmills',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            return {
+                success: true,
+                data: newStudent,
+                message: 'Student registered successfully'
+            };
+        }
+
+        if (method === 'PUT') {
+            // Update student
+            return {
+                success: true,
+                data: {
+                    id: endpoint.split('/').pop(),
+                    student_id: body?.student_id || 'STU001',
+                    name: body?.name || 'Updated Student',
+                    email: body?.email || 'updated@example.com',
+                    phone: body?.phone || '+233000000000',
+                    course: body?.course || 'Computer Science',
+                    level: body?.level || '100',
+                    study_mode: body?.study_mode || 'regular',
+                    residential_status: body?.residential_status || 'resident',
+                    registered_by: 'mcmills',
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: new Date().toISOString()
+                },
+                message: 'Student updated successfully'
+            };
+        }
+
+        if (method === 'DELETE') {
+            // Delete student
+            return {
+                success: true,
+                message: 'Student deleted successfully'
+            };
+        }
 
         return {
             success: true,
@@ -161,6 +214,55 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+        if (method === 'POST') {
+            // Create new payment
+            const newPayment = {
+                id: String(Date.now()),
+                student_id: body?.student_id || '1',
+                student_name: body?.student_name || 'Unknown Student',
+                amount: body?.amount || 0,
+                payment_method: body?.payment_method || 'cash',
+                reference_id: body?.reference_id || `PAY${String(Date.now()).slice(-3)}`,
+                operator: body?.operator || null,
+                recorded_by: 'mcmills',
+                payment_date: new Date().toISOString(),
+                created_at: new Date().toISOString()
+            };
+            return {
+                success: true,
+                data: newPayment,
+                message: 'Payment recorded successfully'
+            };
+        }
+
+        if (method === 'PUT') {
+            // Update payment
+            return {
+                success: true,
+                data: {
+                    id: endpoint.split('/').pop(),
+                    student_id: body?.student_id || '1',
+                    student_name: body?.student_name || 'Updated Student',
+                    amount: body?.amount || 0,
+                    payment_method: body?.payment_method || 'cash',
+                    reference_id: body?.reference_id || 'PAY001',
+                    operator: body?.operator || null,
+                    recorded_by: 'mcmills',
+                    payment_date: body?.payment_date || new Date().toISOString(),
+                    created_at: '2024-01-01T00:00:00Z'
+                },
+                message: 'Payment updated successfully'
+            };
+        }
+
+        if (method === 'DELETE') {
+            // Delete payment
+            return {
+                success: true,
+                message: 'Payment deleted successfully'
+            };
+        }
+
         return {
             success: true,
             data: [
@@ -206,6 +308,52 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
 
     // Mock users data
     if (endpoint.includes('/users')) {
+        if (method === 'POST') {
+            // Create new user
+            const newUser = {
+                id: String(Date.now()),
+                username: body?.username || 'newuser',
+                full_name: body?.full_name || 'New User',
+                role: body?.role || 'clerk',
+                permissions: body?.permissions || {},
+                is_active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            return {
+                success: true,
+                data: newUser,
+                message: 'User created successfully'
+            };
+        }
+
+        if (method === 'PUT') {
+            // Update user
+            return {
+                success: true,
+                data: {
+                    id: endpoint.split('/').pop(),
+                    username: body?.username || 'updated_user',
+                    full_name: body?.full_name || 'Updated User',
+                    role: body?.role || 'clerk',
+                    permissions: body?.permissions || {},
+                    is_active: body?.is_active !== undefined ? body.is_active : true,
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: new Date().toISOString()
+                },
+                message: 'User updated successfully'
+            };
+        }
+
+        if (method === 'DELETE') {
+            // Delete user
+            return {
+                success: true,
+                message: 'User deleted successfully'
+            };
+        }
+
+        // GET users
         return {
             success: true,
             data: [
@@ -224,6 +372,16 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
                     username: 'clerk',
                     full_name: 'System Clerk',
                     role: 'clerk',
+                    permissions: {},
+                    is_active: true,
+                    created_at: '2024-01-01T00:00:00Z',
+                    updated_at: '2024-01-01T00:00:00Z'
+                },
+                {
+                    id: '3',
+                    username: 'admin',
+                    full_name: 'System Administrator',
+                    role: 'admin',
                     permissions: {},
                     is_active: true,
                     created_at: '2024-01-01T00:00:00Z',
@@ -260,14 +418,16 @@ const generateMockData = (endpoint: string, method: string = 'GET'): any => {
                     full_name: 'McMills User',
                     registeredToday: 5,
                     revenueToday: 7500.00,
-                    registeredThisWeek: 28
+                    registeredThisWeek: 28,
+                    totalRevenue: 125000.00
                 },
                 {
                     user_id: '2',
                     full_name: 'System Clerk',
                     registeredToday: 3,
                     revenueToday: 4500.00,
-                    registeredThisWeek: 18
+                    registeredThisWeek: 18,
+                    totalRevenue: 61750.00
                 }
             ]
         };
@@ -304,7 +464,18 @@ const makeRequest = async <T>(
         await new Promise(resolve => setTimeout(resolve, 300));
 
         const method = options.method || 'GET';
-        return generateMockData(endpoint, method);
+        let body = null;
+
+        // Parse body if it exists
+        if (options.body && typeof options.body === 'string') {
+            try {
+                body = JSON.parse(options.body);
+            } catch (e) {
+                body = null;
+            }
+        }
+
+        return generateMockData(endpoint, method, body);
     }
 
     const token = getAuthToken();

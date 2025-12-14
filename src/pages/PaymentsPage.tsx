@@ -1,11 +1,20 @@
 import { useEffect, useState, FormEvent, useRef } from 'react';
 import { DollarSign, CreditCard, Smartphone, Plus, X, TrendingUp, Download, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
-import { mockPayments, mockStudents, getUserAnalytics, Payment, Student } from '../lib/mockData';
+import { paymentsApi, studentsApi, analyticsApi, Payment, Student } from '../lib/api';
 
 interface UserRevenue {
   user_id: string;
   full_name: string;
   totalRevenue: number;
+}
+
+interface UserAnalytics {
+  user_id: string;
+  full_name: string;
+  totalRevenue: number;
+  registeredToday: number;
+  revenueToday: number;
+  registeredThisWeek: number;
 }
 
 export const PaymentsPage = () => {
@@ -34,28 +43,54 @@ export const PaymentsPage = () => {
 
   const fetchPayments = async () => {
     try {
-      // Use centralized mock data
-      setPayments(mockPayments);
+      // Use real API to fetch payments
+      const paymentsResponse = await paymentsApi.getAll();
 
-      // Get user analytics from mock data
-      const analytics = getUserAnalytics();
-      const revenue: UserRevenue[] = analytics.map(user => ({
-        user_id: user.user_id,
-        full_name: user.full_name,
-        totalRevenue: user.totalRevenue
-      }));
+      if (paymentsResponse.success && paymentsResponse.data) {
+        setPayments(paymentsResponse.data);
+      } else {
+        console.error('Failed to fetch payments:', paymentsResponse.error);
+        setPayments([]);
+      }
 
-      setUserRevenue(revenue);
+      // Get user analytics from API
+      const analyticsResponse = await analyticsApi.getUserAnalytics();
+
+      if (analyticsResponse.success && analyticsResponse.data) {
+        const revenue: UserRevenue[] = analyticsResponse.data.map((user: UserAnalytics) => ({
+          user_id: user.user_id,
+          full_name: user.full_name,
+          totalRevenue: user.totalRevenue
+        }));
+        setUserRevenue(revenue);
+      } else {
+        console.error('Failed to fetch user analytics:', analyticsResponse.error);
+        setUserRevenue([]);
+      }
     } catch (error) {
       console.error('Error fetching payments:', error);
+      setPayments([]);
+      setUserRevenue([]);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchStudents = async () => {
-    // Use centralized mock data
-    setStudents(mockStudents);
+    try {
+      // Use real API to fetch students
+      const response = await studentsApi.getAll();
+
+      if (response.success && response.data) {
+        setStudents(response.data);
+      } else {
+        console.error('Failed to fetch students:', response.error);
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setStudents([]);
+    }
   };
 
   // Close dropdown when clicking outside
@@ -577,27 +612,24 @@ export const PaymentsPage = () => {
         return;
       }
 
-      // Create new payment object
-      const newPaymentRecord: Payment = {
-        id: (mockPayments.length + 1).toString(),
+      // Create payment via API
+      const paymentData = {
         student_id: newPayment.student_id,
-        student_name: selectedStudent.name,
         amount: parseFloat(newPayment.amount),
         payment_method: newPayment.payment_method,
         reference_id: newPayment.reference_id,
         operator: newPayment.operator || undefined,
-        recorded_by: '1', // Current user ID
-        payment_date: new Date().toISOString(),
-        created_at: new Date().toISOString()
+        payment_date: new Date().toISOString()
       };
 
-      // Add to mock data (in a real app, this would be an API call)
-      mockPayments.unshift(newPaymentRecord);
+      const response = await paymentsApi.create(paymentData);
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      alert(`Payment of GH₵${newPayment.amount} recorded successfully for ${selectedStudent.name}!`);
+      if (response.success && response.data) {
+        alert(`Payment of GH₵${newPayment.amount} recorded successfully for ${selectedStudent.name}!`);
+      } else {
+        alert(`Failed to record payment: ${response.error}`);
+        return;
+      }
 
       setShowAddModal(false);
       setNewPayment({

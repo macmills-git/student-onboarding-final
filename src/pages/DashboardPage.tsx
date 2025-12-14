@@ -4,12 +4,7 @@ import {
   CreditCard, BarChart3, Activity, PieChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import {
-  getStudentStats,
-  getRecentStudents,
-  getRecentPayments,
-  getUserAnalytics
-} from '../lib/mockData';
+import { analyticsApi, studentsApi, paymentsApi } from '../lib/api';
 
 interface DashboardStats {
   totalStudents: number;
@@ -137,36 +132,50 @@ export const DashboardPage = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Get consistent stats from centralized data
-      const stats = getStudentStats();
-      setStats(stats);
+      // Get dashboard stats from API
+      const dashboardResponse = await analyticsApi.getDashboardStats();
+      if (dashboardResponse.success && dashboardResponse.data) {
+        setStats({
+          totalStudents: dashboardResponse.data.totalStudents,
+          totalRevenue: dashboardResponse.data.totalRevenue,
+          activeUsers: dashboardResponse.data.activeUsers
+        });
+      }
 
-      // Get user analytics from centralized data
-      const analytics = getUserAnalytics();
-      setUserAnalytics(analytics);
+      // Get user analytics from API
+      const analyticsResponse = await analyticsApi.getUserAnalytics();
+      if (analyticsResponse.success && analyticsResponse.data) {
+        setUserAnalytics(analyticsResponse.data);
+      }
 
-      // Get recent students from centralized data
-      const recentStudentsData = getRecentStudents(5);
-      setRecentStudents(
-        recentStudentsData.map(student => ({
-          id: student.id,
-          type: 'student' as const,
-          name: student.name,
-          timestamp: student.created_at
-        }))
-      );
+      // Get recent students from API
+      const studentsResponse = await studentsApi.getAll();
+      if (studentsResponse.success && studentsResponse.data) {
+        const recentStudentsData = studentsResponse.data.slice(0, 5);
+        setRecentStudents(
+          recentStudentsData.map(student => ({
+            id: student.id,
+            type: 'student' as const,
+            name: student.name,
+            timestamp: student.created_at
+          }))
+        );
+      }
 
-      // Get recent payments from centralized data
-      const recentPaymentsData = getRecentPayments(5);
-      setRecentPayments(
-        recentPaymentsData.map(payment => ({
-          id: payment.id,
-          type: 'payment' as const,
-          name: payment.student_name,
-          amount: payment.amount,
-          timestamp: payment.created_at
-        }))
-      );
+      // Get recent payments from API
+      const paymentsResponse = await paymentsApi.getAll();
+      if (paymentsResponse.success && paymentsResponse.data) {
+        const recentPaymentsData = paymentsResponse.data.slice(0, 5);
+        setRecentPayments(
+          recentPaymentsData.map(payment => ({
+            id: payment.id,
+            type: 'payment' as const,
+            name: payment.student_name,
+            amount: payment.amount,
+            timestamp: payment.created_at
+          }))
+        );
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

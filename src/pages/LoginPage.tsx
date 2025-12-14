@@ -120,9 +120,18 @@ export const LoginPage = () => {
               Demo Credentials
             </p>
             <div className="text-sm text-gray-400 space-y-0.5">
-              <p><span className="text-blue-300">admin</span> / <span className="text-blue-300">admin123</span></p>
-              <p><span className="text-green-300">clerk</span> / <span className="text-green-300">clerk123</span></p>
+              <p><span className="text-blue-300">mcmills</span> / <span className="text-blue-300">mcmills1</span></p>
+              <p><span className="text-green-300">clerk</span> / <span className="text-green-300">Clerk123!</span></p>
             </div>
+            <button
+              onClick={() => {
+                setUsername('mcmills');
+                setPassword('mcmills1');
+              }}
+              className="text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              Auto-fill mcmills credentials
+            </button>
           </div>
 
           <div className="pt-3 border-t border-white/10">

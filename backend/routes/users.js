@@ -1,46 +1,22 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const { User } = require("../models");
 const router = express.Router();
 
-// Mock users data (to be replaced with database)
-let mockUsers = [
-  {
-    id: "1",
-    username: "admin",
-    full_name: "System Administrator",
-    role: "admin",
-    permissions: {},
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    username: "clerk",
-    full_name: "System Clerk",
-    role: "clerk",
-    permissions: {},
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
 // GET /api/users - Get all users (admin only)
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   try {
     // TODO: Add authentication middleware to check if user is admin
 
-    // Return users without passwords
-    const usersWithoutPasswords = mockUsers.map((user) => {
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+    const users = await User.findAll({
+      attributes: { exclude: ["password"] }, // Don't return passwords
+      order: [["created_at", "DESC"]],
     });
 
     res.json({
       success: true,
-      data: usersWithoutPasswords,
-      count: usersWithoutPasswords.length,
+      data: users,
+      count: users.length,
     });
   } catch (error) {
     console.error("Get users error:", error);
@@ -49,20 +25,19 @@ router.get("/", (req, res) => {
 });
 
 // GET /api/users/:id - Get single user
-router.get("/:id", (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const user = mockUsers.find((u) => u.id === req.params.id);
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ["password"] }, // Don't return password
+    });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Return user without password
-    const { password, ...userWithoutPassword } = user;
-
     res.json({
       success: true,
-      data: userWithoutPassword,
+      data: user,
     });
   } catch (error) {
     console.error("Get user error:", error);
@@ -82,32 +57,34 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // Validate role
+    if (!["admin", "clerk"].includes(role)) {
+      return res.status(400).json({
+        error: "Role must be either 'admin' or 'clerk'",
+      });
+    }
+
     // Check if username already exists
-    const existingUser = mockUsers.find((u) => u.username === username);
+    const existingUser = await User.findOne({
+      where: { username },
+    });
+
     if (existingUser) {
       return res.status(409).json({ error: "Username already exists" });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
-    const newUser = {
-      id: (mockUsers.length + 1).toString(),
+    // Create new user (password will be hashed by the model hook)
+    const newUser = await User.create({
       username,
-      password: hashedPassword,
+      password,
       full_name,
       role,
-      permissions: {},
+      permissions: role === "admin" ? {} : { register: true, view: true },
       is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    mockUsers.push(newUser);
+    });
 
     // Return user without password
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { password: _, ...userWithoutPassword } = newUser.toJSON();
 
     res.status(201).json({
       success: true,
@@ -116,6 +93,24 @@ router.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Create user error:", error);
+
+    // Handle Sequelize validation errors
+    if (error.name === "SequelizeValidationError") {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: error.errors.map((err) => ({
+          field: err.path,
+          message: err.message,
+        })),
+      });
+    }
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        error: "Username already exists",
+      });
+    }
+
     res.status(500).json({ error: "Failed to create user" });
   }
 });
@@ -123,9 +118,9 @@ router.post("/", async (req, res) => {
 // PUT /api/users/:id - Update user
 router.put("/:id", async (req, res) => {
   try {
-    const userIndex = mockUsers.findIndex((u) => u.id === req.params.id);
+    const user = await User.findByPk(req.params.id);
 
-    if (userIndex === -1) {
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
@@ -133,18 +128,32 @@ router.put("/:id", async (req, res) => {
 
     // If password is being updated, hash it
     if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+
+    // If updating username, check for duplicates
+    if (updateData.username && updateData.username !== user.username) {
+      const existingUser = await User.findOne({
+        where: { username: updateData.username },
+      });
+
+      if (existingUser) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+    }
+
+    // Validate role if provided
+    if (updateData.role && !["admin", "clerk"].includes(updateData.role)) {
+      return res.status(400).json({
+        error: "Role must be either 'admin' or 'clerk'",
+      });
     }
 
     // Update user
-    mockUsers[userIndex] = {
-      ...mockUsers[userIndex],
-      ...updateData,
-      updated_at: new Date().toISOString(),
-    };
+    await user.update(updateData);
 
     // Return user without password
-    const { password: _, ...userWithoutPassword } = mockUsers[userIndex];
+    const { password: _, ...userWithoutPassword } = user.toJSON();
 
     res.json({
       success: true,
@@ -153,20 +162,45 @@ router.put("/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("Update user error:", error);
+
+    // Handle Sequelize validation errors
+    if (error.name === "SequelizeValidationError") {
+      return res.status(400).json({
+        error: "Validation failed",
+        details: error.errors.map((err) => ({
+          field: err.path,
+          message: err.message,
+        })),
+      });
+    }
+
     res.status(500).json({ error: "Failed to update user" });
   }
 });
 
 // DELETE /api/users/:id - Delete user
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const userIndex = mockUsers.findIndex((u) => u.id === req.params.id);
+    const user = await User.findByPk(req.params.id);
 
-    if (userIndex === -1) {
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    mockUsers.splice(userIndex, 1);
+    // Prevent deletion of the last admin user
+    if (user.role === "admin") {
+      const adminCount = await User.count({
+        where: { role: "admin", is_active: true },
+      });
+
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          error: "Cannot delete the last active admin user",
+        });
+      }
+    }
+
+    await user.destroy();
 
     res.json({
       success: true,

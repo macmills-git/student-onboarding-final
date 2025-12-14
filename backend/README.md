@@ -1,207 +1,196 @@
-# Student Management System - Backend API
+# Student Management System Backend
 
-## Overview
+Production-ready backend API for the Student Management System built with Express.js, PostgreSQL/SQLite, and comprehensive security features.
 
-Express.js backend API for the Student Management System with authentication, student management, payment tracking, and user management.
+## 🚀 Features
 
-## Quick Start
+- **Authentication & Security**
+
+  - JWT-based authentication with refresh tokens
+  - Account lockout after failed login attempts
+  - Rate limiting and request validation
+  - Security headers with Helmet.js
+  - Input sanitization and XSS protection
+
+- **Database & Performance**
+
+  - PostgreSQL for production, SQLite for development
+  - Sequelize ORM with optimized queries
+  - Database connection pooling
+  - Automatic migrations and seeding
+
+- **API Features**
+  - RESTful API design
+  - Role-based access control (Admin/Clerk)
+  - Comprehensive input validation
+  - Structured error handling
+  - Request/response logging
+
+## 📋 Prerequisites
+
+- Node.js 16+
+- PostgreSQL 12+ (for production) OR SQLite (for development)
+- npm or yarn
+
+## 🛠️ Installation
+
+### 1. Install Dependencies
 
 ```bash
-# Install dependencies
+cd backend
 npm install
+```
 
-# Start development server
+### 2. Database Setup
+
+#### Option A: PostgreSQL (Recommended for Production)
+
+```bash
+# Install PostgreSQL on your system
+# Ubuntu/Debian:
+sudo apt-get install postgresql postgresql-contrib
+
+# macOS with Homebrew:
+brew install postgresql
+
+# Windows: Download from https://www.postgresql.org/download/windows/
+
+# Create database
+sudo -u postgres createdb student_management
+```
+
+#### Option B: SQLite (Easy for Development)
+
+```bash
+# No installation needed - SQLite file will be created automatically
+```
+
+### 3. Environment Configuration
+
+```bash
+# Copy environment template
+cp .env .env.local
+
+# Edit .env with your settings:
+# - For PostgreSQL: Update DB_* variables
+# - For SQLite: Set DB_DIALECT=sqlite
+# - Change JWT secrets to secure random strings
+```
+
+### 4. Database Migration
+
+```bash
+# Run database migration (creates tables and default users)
+npm run db:migrate
+```
+
+### 5. Start the Server
+
+```bash
+# Development mode
 npm run dev
 
-# Start production server
+# Production mode
 npm start
 ```
 
-The server will run on `http://localhost:5000`
+## 🔐 Default Users
 
-## API Endpoints
+After migration, these default users are created:
 
-### Authentication
+| Username | Password  | Role  |
+| -------- | --------- | ----- |
+| admin    | Admin123! | admin |
+| clerk    | Clerk123! | clerk |
 
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
+⚠️ **IMPORTANT**: Change default passwords immediately after first login!
 
-### Students
+## 📚 API Documentation
 
-- `GET /api/students` - Get all students
-- `GET /api/students/:id` - Get single student
-- `POST /api/students` - Create new student
-- `PUT /api/students/:id` - Update student
-- `DELETE /api/students/:id` - Delete student
+### Base URL
 
-### Payments
-
-- `GET /api/payments` - Get all payments
-- `GET /api/payments/:id` - Get single payment
-- `POST /api/payments` - Record new payment
-- `GET /api/payments/student/:studentId` - Get payments for specific student
-
-### Users
-
-- `GET /api/users` - Get all users (admin only)
-- `GET /api/users/:id` - Get single user
-- `POST /api/users` - Create new user (admin only)
-- `PUT /api/users/:id` - Update user
-- `DELETE /api/users/:id` - Delete user
-
-### Health Check
-
-- `GET /api/health` - API health status
-
-## Environment Variables
-
-Create a `.env` file in the backend directory:
-
-```env
-PORT=5000
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
-
-# Database Configuration (add your database details)
-# DB_HOST=localhost
-# DB_PORT=5432
-# DB_NAME=student_management
-# DB_USER=your_db_user
-# DB_PASSWORD=your_db_password
+```
+http://localhost:5000/api
 ```
 
-## Default Users
-
-The system comes with two default users:
-
-- **Admin**: username: `admin`, password: `admin123`
-- **Clerk**: username: `clerk`, password: `clerk123`
-
-## Data Models
-
-### Student
-
-```javascript
-{
-  id: string,
-  student_id: string,
-  name: string,
-  email: string,
-  gender: string,
-  nationality: string,
-  phone_number: string,
-  course: string,
-  level: string,
-  study_mode: 'regular' | 'distance' | 'city_campus',
-  residential_status: 'resident' | 'non_resident',
-  registered_by: string,
-  created_at: string,
-  updated_at: string
-}
-```
-
-### Payment
-
-```javascript
-{
-  id: string,
-  student_id: string,
-  student_name: string,
-  amount: number,
-  payment_method: 'cash' | 'momo' | 'bank',
-  reference_id: string,
-  operator: string,
-  recorded_by: string,
-  payment_date: string,
-  created_at: string
-}
-```
-
-### User
-
-```javascript
-{
-  id: string,
-  username: string,
-  full_name: string,
-  role: 'admin' | 'clerk',
-  permissions: object,
-  is_active: boolean,
-  created_at: string,
-  updated_at: string
-}
-```
-
-## Current Implementation
-
-- ✅ Express.js server setup
-- ✅ CORS configuration for frontend
-- ✅ Basic authentication with JWT
-- ✅ Mock data for all entities
-- ✅ All CRUD operations
-- ✅ Error handling
-- ✅ Input validation
-
-## TODO for Backend Developer
-
-1. **Database Integration**
-
-   - Set up PostgreSQL/MySQL database
-   - Create database schema and tables
-   - Replace mock data with database queries
-   - Add database connection and ORM (Sequelize/Prisma)
-
-2. **Authentication & Security**
-
-   - Add JWT middleware for protected routes
-   - Implement role-based access control
-   - Add rate limiting
-   - Add input sanitization
-
-3. **Advanced Features**
-
-   - Add pagination for large datasets
-   - Implement search and filtering
-   - Add file upload for student photos
-   - Add audit logging
-   - Add email notifications
-
-4. **Testing**
-
-   - Add unit tests
-   - Add integration tests
-   - Add API documentation (Swagger)
-
-5. **Production Setup**
-   - Add proper logging
-   - Add monitoring
-   - Add deployment configuration
-   - Add database migrations
-
-## Testing the API
-
-You can test the API using tools like Postman or curl:
+### Authentication Endpoints
 
 ```bash
-# Health check
+POST /auth/login          # User login
+POST /auth/refresh        # Refresh access token
+POST /auth/logout         # User logout
+GET  /auth/me            # Get current user info
+```
+
+### Student Management
+
+```bash
+GET    /students         # Get all students (with pagination)
+POST   /students         # Create new student
+GET    /students/:id     # Get student by ID
+PUT    /students/:id     # Update student
+DELETE /students/:id     # Delete student
+```
+
+### Payment Tracking
+
+```bash
+GET    /payments              # Get all payments
+POST   /payments              # Record new payment
+GET    /payments/:id          # Get payment by ID
+GET    /payments/student/:id  # Get payments for student
+```
+
+### User Management (Admin Only)
+
+```bash
+GET    /users           # Get all users
+POST   /users           # Create new user
+GET    /users/:id       # Get user by ID
+PUT    /users/:id       # Update user
+DELETE /users/:id       # Delete user
+```
+
+### System
+
+```bash
+GET /health             # Health check endpoint
+```
+
+## 🔒 Security Features
+
+- **Rate Limiting**: 100 requests per 15 minutes per IP
+- **Authentication Rate Limiting**: 5 login attempts per 15 minutes per IP
+- **Account Lockout**: Account locked for 2 hours after 5 failed login attempts
+- **Password Requirements**: Minimum 8 characters with uppercase, lowercase, and numbers
+- **Input Validation**: Comprehensive validation for all endpoints
+- **Security Headers**: Helmet.js for security headers
+- **XSS Protection**: Input sanitization to prevent XSS attacks
+
+## 🧪 Testing
+
+```bash
+# Test database connection
 curl http://localhost:5000/api/health
 
-# Login
+# Test authentication
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin123"}'
-
-# Get students
-curl http://localhost:5000/api/students
+  -d '{"username":"admin","password":"Admin123!"}'
 ```
 
-## Frontend Integration
+## 🚀 Production Deployment
 
-Update the frontend `.env` file:
+1. **Environment Setup**
 
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+   - Set `NODE_ENV=production`
+   - Use strong JWT secrets (32+ characters)
+   - Configure PostgreSQL database
+   - Set up reverse proxy (nginx)
 
-Then replace the mock data calls in the frontend with actual API calls to these endpoints.
+2. **Security Checklist**
+   - Change default passwords
+   - Use HTTPS in production
+   - Configure firewall rules
+   - Set up database backups
+   - Monitor logs for security events

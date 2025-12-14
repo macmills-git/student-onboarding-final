@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2, Download, FileText, FileSpreadsheet } from 'lucide-react';
-import { mockStudents, Student } from '../lib/mockData';
+import { studentsApi, Student } from '../lib/api';
 
 export const StudentsPage = () => {
   const [students, setStudents] = useState<Student[]>([]);
@@ -40,9 +40,16 @@ export const StudentsPage = () => {
 
   const fetchStudents = async () => {
     try {
-      // Use centralized mock data
-      console.log('Loading students:', mockStudents.length);
-      setStudents(mockStudents);
+      // Use real API to fetch students
+      const response = await studentsApi.getAll();
+
+      if (response.success && response.data) {
+        console.log('Loading students from API:', response.data.length);
+        setStudents(response.data);
+      } else {
+        console.error('Failed to fetch students:', response.error);
+        setStudents([]);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
       // Set empty array as fallback
@@ -84,28 +91,25 @@ export const StudentsPage = () => {
 
   const handleEdit = async (student: Student) => {
     try {
-      // Update the student in mock data
-      const studentIndex = mockStudents.findIndex(s => s.id === student.id);
-      if (studentIndex !== -1) {
-        mockStudents[studentIndex] = { ...student, updated_at: new Date().toISOString() };
+      // Update the student via API
+      const response = await studentsApi.update(student.id, student);
+
+      if (response.success && response.data) {
+        alert(`Student ${student.name} updated successfully!`);
+
+        // Update state directly to trigger re-render
+        setStudents(students.map(s =>
+          s.id === student.id ? response.data : s
+        ));
+
+        setIsEditing(false);
+        setSelectedStudent(null);
+      } else {
+        alert(`Failed to update student: ${response.error}`);
       }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      alert(`Student ${student.name} updated successfully!`);
-
-      // Update state directly to trigger re-render
-      setStudents(students.map(s =>
-        s.id === student.id
-          ? { ...student, updated_at: new Date().toISOString() }
-          : s
-      ));
-
-      setIsEditing(false);
-      setSelectedStudent(null);
     } catch (error) {
       console.error('Error updating student:', error);
+      alert('Failed to update student. Please try again.');
     }
   };
 
@@ -115,21 +119,20 @@ export const StudentsPage = () => {
     }
 
     try {
-      // Remove student from mock data
-      const studentIndex = mockStudents.findIndex(s => s.id === studentId);
-      if (studentIndex !== -1) {
-        mockStudents.splice(studentIndex, 1);
+      // Delete student via API
+      const response = await studentsApi.delete(studentId);
+
+      if (response.success) {
+        alert(`Student ${studentName} deleted successfully!`);
+
+        // Update state directly to trigger re-render
+        setStudents(students.filter(s => s.id !== studentId));
+      } else {
+        alert(`Failed to delete student: ${response.error}`);
       }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      alert(`Student ${studentName} deleted successfully!`);
-
-      // Update state directly to trigger re-render
-      setStudents(students.filter(s => s.id !== studentId));
     } catch (error) {
       console.error('Error deleting student:', error);
+      alert('Failed to delete student. Please try again.');
     }
   };
 

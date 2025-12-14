@@ -115,12 +115,21 @@ export const HomePage = () => {
             Student Management System
           </p>
 
-          <p className="text-[0.84rem] md:text-[1.31rem] lg:text-[1.14rem] text-blue-100 mb-8 leading-relaxed max-w-3xl mx-auto animate-fade-in-up animation-delay-300 drop-shadow-lg">
+          <p className="text-[0.84rem] md:text-[1.31rem] lg:text-[1.14rem] text-blue-100 mb-4 leading-relaxed max-w-3xl mx-auto animate-fade-in-up animation-delay-300 drop-shadow-lg">
             {profile?.role === 'clerk'
               ? 'Streamline student registration and management with our intuitive tools designed for efficiency.'
               : 'Empowering excellence through efficient student registration, tracking, and analytics.'
             }
           </p>
+
+          <div className="flex justify-center mb-8 animate-fade-in-up animation-delay-400">
+            <div className="bg-green-500/20 backdrop-blur-md px-4 py-2 rounded-full border border-green-400/30">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-green-100">Frontend Demo Mode - No Backend Required</span>
+              </div>
+            </div>
+          </div>
 
           <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-[1.1rem] mb-8 mt-8 md:mt-[3.85rem] justify-center animate-fade-in-up animation-delay-500">
             {benefits.map((benefit, index) => {

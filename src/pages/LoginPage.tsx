@@ -133,7 +133,7 @@ export const LoginPage = () => {
               Auto-fill admin credentials
             </button>
             <p className="text-xs text-gray-500 mt-2">
-              ✨ Frontend-only demo with mock data
+              ✨ Frontend-only demo - No backend required
             </p>
           </div>
 

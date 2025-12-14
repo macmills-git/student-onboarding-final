@@ -1,8 +1,8 @@
-// API service layer for connecting frontend to backend
+// API service layer - BACKEND DORMANT (Frontend-only mode)
 const API_BASE_URL = '/api';
 
 // Mock data for demo purposes (no backend required)
-const MOCK_MODE = true; // Set to false when backend is deployed
+const MOCK_MODE = true; // Backend is dormant - all data is simulated
 
 // Types
 export interface ApiResponse<T> {

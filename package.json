@@ -1,8 +1,10 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "compssa-student-management",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "COMPSSA Student Management System - Frontend Only",
+  "homepage": "https://github.com/macmills-git/student-onboarding-final",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

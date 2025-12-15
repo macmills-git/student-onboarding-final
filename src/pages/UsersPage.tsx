@@ -1,9 +1,9 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp } from 'lucide-react';
-import { usersApi, User } from '../lib/api';
+import { useData, User } from '../contexts/DataContext';
 
 export const UsersPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const { users, addUser, updateUser, deleteUser } = useData();
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -19,27 +19,9 @@ export const UsersPage = () => {
   });
 
   useEffect(() => {
-    fetchUsers();
+    // Users data comes from shared context
+    setLoading(false);
   }, []);
-
-  const fetchUsers = async () => {
-    try {
-      // Use real API to fetch users
-      const response = await usersApi.getAll();
-
-      if (response.success && response.data) {
-        setUsers(response.data);
-      } else {
-        console.error('Failed to fetch users:', response.error);
-        setUsers([]);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleUserExpand = (userId: string) => {
     if (expandedUserId === userId) {
@@ -70,103 +52,62 @@ export const UsersPage = () => {
 
   const handleAddUser = async (e: FormEvent) => {
     e.preventDefault();
-    try {
-      // Create user via API
-      const userData = {
-        username: newUser.username,
-        password: newUser.password,
-        full_name: newUser.full_name,
-        role: newUser.role,
-        permissions: newUser.role === 'admin' ? {} : { register: true, view: true },
-        is_active: true
-      };
 
-      const response = await usersApi.create(userData);
+    // Frontend-only: Create user in shared context
+    const newUserData: User = {
+      id: String(Date.now()),
+      username: newUser.username,
+      full_name: newUser.full_name,
+      role: newUser.role,
+      permissions: newUser.role === 'admin' ? {} : { register: true, view: true },
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
 
-      if (response.success && response.data) {
-        alert(`User ${newUser.full_name} created successfully!`);
+    addUser(newUserData);
+    alert(`User ${newUser.full_name} created successfully!`);
 
-        // Update state directly to trigger re-render
-        setUsers([response.data, ...users]);
-      } else {
-        alert(`Failed to create user: ${response.error}`);
-        return;
-      }
-
-      setShowAddModal(false);
-      setNewUser({
-        username: '',
-        password: '',
-        full_name: '',
-        role: 'clerk',
-      });
-    } catch (error) {
-      console.error('Error adding user:', error);
-    }
+    setShowAddModal(false);
+    setNewUser({
+      username: '',
+      password: '',
+      full_name: '',
+      role: 'clerk',
+    });
   };
 
   const handleEditUser = async (user: User) => {
-    try {
-      // Update the user via API
-      const response = await usersApi.update(user.id, user);
+    // Frontend-only: Update user in shared context
+    const updatedUser = {
+      ...user,
+      updated_at: new Date().toISOString()
+    };
 
-      if (response.success && response.data) {
-        alert(`User ${user.full_name} updated successfully!`);
-
-        // Update state directly to trigger re-render
-        setUsers(users.map(u =>
-          u.id === user.id ? response.data! : u
-        ));
-
-        setEditingUser(null);
-      } else {
-        alert(`Failed to update user: ${response.error}`);
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-      alert('Failed to update user. Please try again.');
-    }
+    updateUser(user.id, updatedUser);
+    alert(`User ${user.full_name} updated successfully!`);
+    setEditingUser(null);
   };
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
-    try {
-      // Delete user via API
-      const response = await usersApi.delete(userId);
-
-      if (response.success) {
-        alert('User deleted successfully!');
-
-        // Update state directly to trigger re-render
-        setUsers(users.filter(u => u.id !== userId));
-      } else {
-        alert(`Failed to delete user: ${response.error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('Failed to delete user. Please try again.');
-    }
+    // Frontend-only: Delete user from shared context
+    deleteUser(userId);
+    alert('User deleted successfully!');
   };
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    try {
-      // Update user status via API
-      const response = await usersApi.update(userId, { is_active: !currentStatus });
-
-      if (response.success && response.data) {
-        alert(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
-
-        // Update state directly to trigger re-render
-        setUsers(users.map(u =>
-          u.id === userId ? response.data! : u
-        ));
-      } else {
-        alert(`Failed to update user status: ${response.error}`);
-      }
-    } catch (error) {
-      console.error('Error toggling user status:', error);
-      alert('Failed to update user status. Please try again.');
+    // Frontend-only: Update user status in shared context
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      const updatedUser = {
+        ...user,
+        is_active: !currentStatus,
+        updated_at: new Date().toISOString()
+      };
+      updateUser(userId, updatedUser);
+      alert(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
     }
   };
 

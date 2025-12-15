@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { authApi } from '../lib/api';
+// Frontend-only authentication - no API imports needed
 
 interface User {
   id: string;

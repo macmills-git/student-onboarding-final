@@ -123,12 +123,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // Call logout API
-      await authApi.logout();
+      // Frontend-only logout - no API call needed
+      console.log('Logging out user...');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear localStorage regardless of API call result
+      // Clear localStorage
       localStorage.removeItem('auth_user');
       localStorage.removeItem('auth_profile');
       localStorage.removeItem('token');

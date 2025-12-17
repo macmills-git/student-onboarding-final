@@ -24,6 +24,9 @@ export const TopNavbar = () => {
 
   // Define navigation items based on user role
   const getNavItems = () => {
+    console.log('TopNavbar - Profile:', profile);
+    console.log('TopNavbar - Role:', profile?.role);
+    
     if (profile?.role === 'admin') {
       return [
         { path: '/home', label: 'Home', icon: Home },

@@ -1,26 +1,72 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp } from 'lucide-react';
-import { useData, User } from '../contexts/DataContext';
+import { usersAPI, dashboardAPI } from '../services/api';
+
+interface User {
+  id: string;
+  username: string;
+  full_name: string;
+  email?: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface UserPerformance {
+  user_id: string;
+  full_name: string;
+  username: string;
+  registeredToday: number;
+  revenueToday: number;
+  registeredThisWeek: number;
+  totalRevenue: number;
+}
 
 export const UsersPage = () => {
-  const { users, addUser, updateUser, deleteUser } = useData();
+  const [users, setUsers] = useState<User[]>([]);
+  const [userPerformance, setUserPerformance] = useState<UserPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [isPerformanceVisible, setIsPerformanceVisible] = useState(false);
 
-
   const [newUser, setNewUser] = useState({
     username: '',
     password: '',
     full_name: '',
-    role: 'clerk' as 'admin' | 'clerk',
+    email: '',
+    role: 'CLERK' as 'ADMIN' | 'CLERK',
   });
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await usersAPI.getAll();
+      setUsers(response);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      alert('Failed to load users. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserPerformance = async () => {
+    try {
+      const response = await dashboardAPI.getStaffPerformance();
+      if (response.success) {
+        setUserPerformance(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user performance:', error);
+    }
+  };
+
   useEffect(() => {
-    // Users data comes from shared context
-    setLoading(false);
+    fetchUsers();
+    fetchUserPerformance();
   }, []);
 
   const toggleUserExpand = (userId: string) => {
@@ -38,11 +84,17 @@ export const UsersPage = () => {
   };
 
   const getUserPerformance = (userId: string) => {
-    // This will be populated when we fetch analytics data
-    // For now, return a default structure
+    // Find performance data for this user
+    const performance = userPerformance.find(p => p.user_id === userId);
+    if (performance) {
+      return performance;
+    }
+    
+    // Return default structure if not found
     return {
       user_id: userId,
       full_name: '',
+      username: '',
       registeredToday: 0,
       revenueToday: 0,
       registeredThisWeek: 0,
@@ -53,61 +105,79 @@ export const UsersPage = () => {
   const handleAddUser = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Frontend-only: Create user in shared context
-    const newUserData: User = {
-      id: String(Date.now()),
-      username: newUser.username,
-      full_name: newUser.full_name,
-      role: newUser.role,
-      permissions: newUser.role === 'admin' ? {} : { register: true, view: true },
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    try {
+      await usersAPI.create({
+        username: newUser.username,
+        password: newUser.password,
+        full_name: newUser.full_name,
+        email: newUser.email || undefined,
+        role: newUser.role,
+      });
 
-    addUser(newUserData);
-    alert(`User ${newUser.full_name} created successfully!`);
+      alert(`User ${newUser.full_name} created successfully!`);
+      
+      setShowAddModal(false);
+      setNewUser({
+        username: '',
+        password: '',
+        full_name: '',
+        email: '',
+        role: 'CLERK',
+      });
 
-    setShowAddModal(false);
-    setNewUser({
-      username: '',
-      password: '',
-      full_name: '',
-      role: 'clerk',
-    });
+      // Refresh user list
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Failed to create user:', error);
+      alert(error.message || 'Failed to create user. Please try again.');
+    }
   };
 
   const handleEditUser = async (user: User) => {
-    // Frontend-only: Update user in shared context
-    const updatedUser = {
-      ...user,
-      updated_at: new Date().toISOString()
-    };
+    try {
+      await usersAPI.update(user.id, {
+        username: user.username,
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+      });
 
-    updateUser(user.id, updatedUser);
-    alert(`User ${user.full_name} updated successfully!`);
-    setEditingUser(null);
+      alert(`User ${user.full_name} updated successfully!`);
+      setEditingUser(null);
+      
+      // Refresh user list
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Failed to update user:', error);
+      alert(error.message || 'Failed to update user. Please try again.');
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
-    // Frontend-only: Delete user from shared context
-    deleteUser(userId);
-    alert('User deleted successfully!');
+    try {
+      await usersAPI.delete(userId);
+      alert('User deleted successfully!');
+      
+      // Refresh user list
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
+      alert(error.message || 'Failed to delete user. Please try again.');
+    }
   };
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    // Frontend-only: Update user status in shared context
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      const updatedUser = {
-        ...user,
-        is_active: !currentStatus,
-        updated_at: new Date().toISOString()
-      };
-      updateUser(userId, updatedUser);
+    try {
+      await usersAPI.toggleStatus(userId);
       alert(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
+      
+      // Refresh user list
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Failed to toggle user status:', error);
+      alert(error.message || 'Failed to toggle user status. Please try again.');
     }
   };
 
@@ -211,11 +281,11 @@ export const UsersPage = () => {
                       <div className="flex items-center gap-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
                         <span className="truncate">@{user.username}</span>
                         <span className="hidden md:inline">•</span>
-                        <span className={`hidden md:inline px-2 py-1 rounded text-sm ${user.role === 'admin'
+                        <span className={`hidden md:inline px-2 py-1 rounded text-sm ${user.role.toUpperCase() === 'ADMIN'
                           ? 'bg-gray-200 dark:bg-gray-700 text-red-600 dark:text-red-400'
                           : 'bg-gray-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400'
                           }`}>
-                          {user.role}
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()}
                         </span>
                         <span className="hidden md:inline">•</span>
                         <span className={`hidden md:inline px-2 py-1 rounded text-sm ${user.is_active
@@ -269,7 +339,7 @@ export const UsersPage = () => {
                           <div>
                             <h3 className="font-bold text-gray-800 dark:text-white text-base">{user.full_name}</h3>
                             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                              {user.role === 'admin' ? 'Admin' : 'Clerk'}
+                              {user.role.toUpperCase() === 'ADMIN' ? 'Admin' : 'Clerk'}
                             </p>
                           </div>
                         </div>
@@ -418,6 +488,18 @@ export const UsersPage = () => {
 
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Password
                 </label>
                 <input
@@ -439,8 +521,8 @@ export const UsersPage = () => {
                   className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
                   required
                 >
-                  <option value="clerk">Clerk</option>
-                  <option value="admin">Admin</option>
+                  <option value="CLERK">Clerk</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
               </div>
 
@@ -504,15 +586,27 @@ export const UsersPage = () => {
 
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={editingUser.email || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Role
                 </label>
                 <select
-                  value={editingUser.role}
-                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}
+                  value={editingUser.role.toUpperCase()}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
                   className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
                 >
-                  <option value="clerk">Clerk</option>
-                  <option value="admin">Admin</option>
+                  <option value="CLERK">Clerk</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
               </div>
 
@@ -539,57 +633,58 @@ export const UsersPage = () => {
         <div id="user-activity" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 scroll-mt-24">
           <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">User Activity</h3>
           <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  A
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">System Administrator</p>
-                  <p className="text-sm text-green-600 dark:text-green-400">Online now</p>
-                </div>
-              </div>
-              <span className="text-sm text-green-600 dark:text-green-400 font-medium">Active</span>
-            </div>
+            {users.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No users found</p>
+            ) : (
+              users.map((user) => {
+                const performance = userPerformance.find(p => p.user_id === user.id);
+                const isActiveToday = performance && (performance.registeredToday > 0 || performance.revenueToday > 0);
+                const hasWeekActivity = performance && performance.registeredThisWeek > 0;
+                
+                // Determine activity status
+                let activityStatus = 'Inactive';
+                let activityColor = 'gray';
+                let bgColor = 'bg-gray-50 dark:bg-gray-900/50';
+                let borderColor = '';
+                
+                if (!user.is_active) {
+                  activityStatus = 'Deactivated';
+                  activityColor = 'gray';
+                } else if (isActiveToday) {
+                  activityStatus = 'Active today';
+                  activityColor = 'green';
+                  bgColor = 'bg-green-50 dark:bg-green-900/20';
+                  borderColor = 'border border-green-200 dark:border-green-800';
+                } else if (hasWeekActivity) {
+                  activityStatus = 'Active this week';
+                  activityColor = 'blue';
+                  bgColor = 'bg-blue-50 dark:bg-blue-900/20';
+                  borderColor = 'border border-blue-200 dark:border-blue-800';
+                }
 
-            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  J
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">John Clerk</p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">Last seen 2 hours ago</p>
-                </div>
-              </div>
-              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">Active</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  J
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">Jane Clerk</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Inactive</p>
-                </div>
-              </div>
-              <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Inactive</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-teal-50 dark:bg-teal-900/20 rounded border border-teal-200 dark:border-teal-800">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  S
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">Sarah Johnson</p>
-                  <p className="text-sm text-teal-600 dark:text-teal-400">Last seen 30 minutes ago</p>
-                </div>
-              </div>
-              <span className="text-sm text-teal-600 dark:text-teal-400 font-medium">Active</span>
-            </div>
+                return (
+                  <div key={user.id} className={`flex items-center justify-between p-3 ${bgColor} rounded ${borderColor}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 bg-${activityColor}-500 rounded-full flex items-center justify-center text-white text-sm font-bold`}>
+                        {user.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 dark:text-white">{user.full_name}</p>
+                        <p className={`text-sm text-${activityColor}-600 dark:text-${activityColor}-400`}>
+                          {!user.is_active ? 'Account deactivated' : 
+                           isActiveToday ? `${performance?.registeredToday || 0} registrations today` :
+                           hasWeekActivity ? `${performance?.registeredThisWeek || 0} registrations this week` :
+                           'No recent activity'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-sm text-${activityColor}-600 dark:text-${activityColor}-400 font-medium`}>
+                      {activityStatus}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

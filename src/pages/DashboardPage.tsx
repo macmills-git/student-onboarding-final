@@ -4,12 +4,24 @@ import {
   CreditCard, BarChart3, Activity, PieChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-// Frontend-only dashboard - no API imports needed
+import { dashboardAPI } from '../services/api';
 
 interface DashboardStats {
   totalStudents: number;
   totalRevenue: number;
   activeUsers: number;
+  todayRegistrations: number;
+  todayRevenue: number;
+  weeklyRegistrations: number;
+  staffOnline: number;
+}
+
+interface CourseDistribution {
+  course: string;
+  students: number;
+  percentage: number;
+  color: string;
+  rank: number;
 }
 
 interface UserAnalytics {
@@ -18,6 +30,7 @@ interface UserAnalytics {
   registeredToday: number;
   revenueToday: number;
   registeredThisWeek: number;
+  totalRevenue: number;
 }
 
 interface RecentActivity {
@@ -33,7 +46,12 @@ export const DashboardPage = () => {
     totalStudents: 0,
     totalRevenue: 0,
     activeUsers: 0,
+    todayRegistrations: 0,
+    todayRevenue: 0,
+    weeklyRegistrations: 0,
+    staffOnline: 0,
   });
+  const [courseDistribution, setCourseDistribution] = useState<CourseDistribution[]>([]);
   const [userAnalytics, setUserAnalytics] = useState<UserAnalytics[]>([]);
   const [recentStudents, setRecentStudents] = useState<RecentActivity[]>([]);
   const [recentPayments, setRecentPayments] = useState<RecentActivity[]>([]);
@@ -131,80 +149,64 @@ export const DashboardPage = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    // Frontend-only: Use static data directly (no API calls)
+    try {
+      console.log('Fetching dashboard data...');
+      
+      // Fetch all dashboard data in parallel
+      const [statsResponse, staffResponse, activityResponse] = await Promise.all([
+        dashboardAPI.getStats(),
+        dashboardAPI.getStaffPerformance(),
+        dashboardAPI.getRecentActivity()
+      ]);
 
-    // Set dashboard stats
-    setStats({
-      totalStudents: 1247,
-      totalRevenue: 186750.00,
-      activeUsers: 3,
-    });
+      console.log('Stats response:', statsResponse);
+      console.log('Staff response:', staffResponse);
+      console.log('Activity response:', activityResponse);
 
-    // Set user analytics
-    setUserAnalytics([
-      {
-        user_id: '1',
-        full_name: 'McMills User',
-        registeredToday: 5,
-        revenueToday: 7500.00,
-        registeredThisWeek: 28,
-        totalRevenue: 125000.00
-      },
-      {
-        user_id: '2',
-        full_name: 'System Clerk',
-        registeredToday: 3,
-        revenueToday: 4500.00,
-        registeredThisWeek: 18,
-        totalRevenue: 61750.00
-      }
-    ]);
+      // Set dashboard stats
+      setStats({
+        totalStudents: statsResponse.data.totals.students,
+        totalRevenue: statsResponse.data.totals.revenue,
+        activeUsers: statsResponse.data.totals.active_users,
+        todayRegistrations: statsResponse.data.today.registrations,
+        todayRevenue: statsResponse.data.today.revenue,
+        weeklyRegistrations: statsResponse.data.weekly.registrations,
+        staffOnline: statsResponse.data.today.staff_online,
+      });
 
-    // Set recent students
-    const today = new Date();
-    setRecentStudents([
-      {
-        id: '1',
-        type: 'student' as const,
-        name: 'John Doe',
-        timestamp: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-      },
-      {
-        id: '2',
-        type: 'student' as const,
-        name: 'Jane Smith',
-        timestamp: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
-      },
-      {
-        id: '3',
-        type: 'student' as const,
-        name: 'Michael Johnson',
-        timestamp: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString() // 6 hours ago
-      }
-    ]);
+      // Process course distribution
+      const courseData = statsResponse.data.distributions.by_course;
+      const courseColors = ['bg-cyan-600', 'bg-emerald-600', 'bg-blue-600', 'bg-teal-700', 'bg-indigo-600', 'bg-purple-600', 'bg-pink-600'];
+      const courseArray = Object.entries(courseData)
+        .map(([course, count]) => ({ course, count: count as number }))
+        .sort((a, b) => b.count - a.count);
+      
+      const maxStudents = courseArray[0]?.count || 1;
+      const distribution = courseArray.map((item, index) => ({
+        course: item.course,
+        students: item.count,
+        percentage: (item.count / statsResponse.data.totals.students) * 100,
+        color: courseColors[index % courseColors.length],
+        rank: index + 1
+      }));
+      setCourseDistribution(distribution);
 
-    // Set recent payments
-    setRecentPayments([
-      {
-        id: '1',
-        type: 'payment' as const,
-        name: 'John Doe',
-        amount: 2500.00,
-        timestamp: new Date(today.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
-      },
-      {
-        id: '2',
-        type: 'payment' as const,
-        name: 'Jane Smith',
-        amount: 1800.00,
-        timestamp: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString() // 3 hours ago
-      }
-    ]);
+      // Set user analytics
+      setUserAnalytics(staffResponse.data);
 
-    // Simulate loading delay for better UX
-    setTimeout(() => {
+      // @ts-ignore - Set recent activity
+      setRecentStudents(activityResponse.data.recent_students);
+      // @ts-ignore
+      setRecentPayments(activityResponse.data.recent_payments);
+
+      console.log('Dashboard data loaded successfully');
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      alert('Failed to load dashboard data. Please check if you are logged in and the backend is running.');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   if (loading) {
@@ -244,7 +246,7 @@ export const DashboardPage = () => {
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
             <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
-              {userAnalytics.reduce((sum, user) => sum + user.registeredToday, 0)}
+              {stats.todayRegistrations}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Registrations</p>
           </div>
@@ -256,7 +258,7 @@ export const DashboardPage = () => {
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
             <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
-              GH₵ {userAnalytics.reduce((sum, user) => sum + user.revenueToday, 0).toLocaleString()}
+              GH₵ {stats.todayRevenue.toLocaleString()}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
           </div>
@@ -268,7 +270,7 @@ export const DashboardPage = () => {
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Week</span>
             </div>
             <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
-              {userAnalytics.reduce((sum, user) => sum + user.registeredThisWeek, 0)}
+              {stats.weeklyRegistrations}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Total</p>
           </div>
@@ -279,7 +281,7 @@ export const DashboardPage = () => {
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Now</span>
             </div>
-            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">{stats.activeUsers}</p>
+            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">{stats.staffOnline}</p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Staff Online</p>
           </div>
         </div>
@@ -302,15 +304,7 @@ export const DashboardPage = () => {
         <div className="space-y-4 md:space-y-0">
           {/* Mobile View - Card Layout */}
           <div className="md:hidden space-y-4">
-            {[
-              { course: 'Computer Science', students: 298, percentage: 23.9, color: 'bg-cyan-600', rank: 1 },
-              { course: 'Information Technology', students: 245, percentage: 19.6, color: 'bg-emerald-600', rank: 2 },
-              { course: 'Mathematical Science', students: 187, percentage: 15.0, color: 'bg-blue-600', rank: 3 },
-              { course: 'Physical Science', students: 156, percentage: 12.5, color: 'bg-cyan-600', rank: 4 },
-              { course: 'Actuarial Science', students: 142, percentage: 11.4, color: 'bg-teal-700', rank: 5 },
-              { course: 'Education', students: 124, percentage: 9.9, color: 'bg-indigo-600', rank: 6 },
-              { course: 'Allied Health', students: 95, percentage: 7.6, color: 'bg-cyan-600', rank: 7 }
-            ].map((item) => (
+            {courseDistribution.map((item) => (
               <div key={item.course} className="bg-gray-100 dark:bg-gray-700/30 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -327,10 +321,10 @@ export const DashboardPage = () => {
                 <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
                   <div
                     className={`${item.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end pr-2`}
-                    style={{ width: isChartVisible ? `${(item.students / 298) * 100}%` : '0%' }}
+                    style={{ width: isChartVisible ? `${(item.students / (courseDistribution[0]?.students || 1)) * 100}%` : '0%' }}
                   >
                     {isChartVisible && (
-                      <span className="text-sm font-bold text-white animate-fade-in">{item.percentage}%</span>
+                      <span className="text-sm font-bold text-white animate-fade-in">{item.percentage.toFixed(1)}%</span>
                     )}
                   </div>
                 </div>
@@ -363,15 +357,7 @@ export const DashboardPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { course: 'Computer Science', students: 298, percentage: 23.9, color: 'bg-cyan-600', rank: 1 },
-                  { course: 'Information Technology', students: 245, percentage: 19.6, color: 'bg-emerald-600', rank: 2 },
-                  { course: 'Mathematical Science', students: 187, percentage: 15.0, color: 'bg-blue-600', rank: 3 },
-                  { course: 'Physical Science', students: 156, percentage: 12.5, color: 'bg-cyan-600', rank: 4 },
-                  { course: 'Actuarial Science', students: 142, percentage: 11.4, color: 'bg-teal-700', rank: 5 },
-                  { course: 'Education', students: 124, percentage: 9.9, color: 'bg-indigo-600', rank: 6 },
-                  { course: 'Allied Health', students: 95, percentage: 7.6, color: 'bg-cyan-600', rank: 7 }
-                ].map((item, index) => (
+                {courseDistribution.map((item, index) => (
                   <tr
                     key={item.course}
                     className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-colors ${index === 0 ? 'bg-gray-50 dark:bg-gray-800/20' : ''}`}
@@ -396,10 +382,10 @@ export const DashboardPage = () => {
                           <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
                             <div
                               className={`${item.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end pr-2`}
-                              style={{ width: isChartVisible ? `${(item.students / 298) * 100}%` : '0%' }}
+                              style={{ width: isChartVisible ? `${(item.students / (courseDistribution[0]?.students || 1)) * 100}%` : '0%' }}
                             >
                               {isChartVisible && (
-                                <span className="text-sm font-bold text-white animate-fade-in">{item.percentage}%</span>
+                                <span className="text-sm font-bold text-white animate-fade-in">{item.percentage.toFixed(1)}%</span>
                               )}
                             </div>
                           </div>
@@ -412,7 +398,7 @@ export const DashboardPage = () => {
                   <td className="py-4 px-4"></td>
                   <td className="py-4 px-4 text-base font-bold text-gray-800 dark:text-white">Total Enrollment</td>
                   <td className="py-4 px-4 text-center text-xl font-extrabold text-gray-800 dark:text-white">{stats.totalStudents.toLocaleString()}</td>
-                  <td className="py-4 px-4 text-base text-gray-600 dark:text-gray-400">7 Programs</td>
+                  <td className="py-4 px-4 text-base text-gray-600 dark:text-gray-400">{courseDistribution.length} Programs</td>
                 </tr>
               </tbody>
             </table>

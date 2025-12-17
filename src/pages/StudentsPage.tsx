@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { useData, Student } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const StudentsPage = () => {
   const { students, updateStudent, deleteStudent } = useData();
+  const { profile } = useAuth();
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +51,11 @@ export const StudentsPage = () => {
   const filterAndSortStudents = () => {
     let filtered = [...students];
 
+    // Filter by user role: clerks only see their registered students, admins see all
+    if (profile && profile.role.toUpperCase() !== 'ADMIN') {
+      filtered = filtered.filter((s) => s.registered_by === profile.id);
+    }
+
     if (searchQuery) {
       filtered = filtered.filter(
         (s) =>
@@ -77,17 +84,19 @@ export const StudentsPage = () => {
   };
 
   const handleEdit = async (student: Student) => {
-    // Frontend-only: Update student in shared context
+    try {
+      const updatedStudent = {
+        ...student,
+        updated_at: new Date().toISOString()
+      };
 
-    const updatedStudent = {
-      ...student,
-      updated_at: new Date().toISOString()
-    };
-
-    updateStudent(student.id, updatedStudent);
-    alert(`Student ${student.name} updated successfully!`);
-    setIsEditing(false);
-    setSelectedStudent(null);
+      await updateStudent(student.id, updatedStudent);
+      alert(`Student ${student.name} updated successfully!`);
+      setIsEditing(false);
+      setSelectedStudent(null);
+    } catch (error: any) {
+      alert(`Error updating student: ${error.message}`);
+    }
   };
 
   const handleDelete = async (studentId: string, studentName: string) => {
@@ -95,9 +104,12 @@ export const StudentsPage = () => {
       return;
     }
 
-    // Frontend-only: Remove student from shared context
-    deleteStudent(studentId);
-    alert(`Student ${studentName} deleted successfully!`);
+    try {
+      await deleteStudent(studentId);
+      alert(`Student ${studentName} deleted successfully!`);
+    } catch (error: any) {
+      alert(`Error deleting student: ${error.message}`);
+    }
   };
 
   const courses = Array.from(new Set(students.map((s) => s.course || 'Unknown')));
@@ -134,8 +146,8 @@ export const StudentsPage = () => {
 
       const dayMale = dayRegistrations.filter(s => s.gender === 'Male').length;
       const dayFemale = dayRegistrations.filter(s => s.gender === 'Female').length;
-      const dayRegular = dayRegistrations.filter(s => s.study_mode === 'regular').length;
-      const dayDistance = dayRegistrations.filter(s => s.study_mode === 'distance').length;
+      const dayRegular = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const dayDistance = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       dailyBreakdown.push({
         date: date.toLocaleDateString(),
@@ -162,8 +174,8 @@ export const StudentsPage = () => {
 
       const weekMale = weekRegs.filter(s => s.gender === 'Male').length;
       const weekFemale = weekRegs.filter(s => s.gender === 'Female').length;
-      const weekRegular = weekRegs.filter(s => s.study_mode === 'regular').length;
-      const weekDistance = weekRegs.filter(s => s.study_mode === 'distance').length;
+      const weekRegular = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const weekDistance = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       weeklyBreakdown.push({
         weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
@@ -182,8 +194,8 @@ export const StudentsPage = () => {
       const courseStudents = analyticsSource.filter(s => s.course === course);
       const courseMale = courseStudents.filter(s => s.gender === 'Male').length;
       const courseFemale = courseStudents.filter(s => s.gender === 'Female').length;
-      const courseRegular = courseStudents.filter(s => s.study_mode === 'regular').length;
-      const courseDistance = courseStudents.filter(s => s.study_mode === 'distance').length;
+      const courseRegular = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const courseDistance = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
       const courseRecentWeek = courseStudents.filter(s => new Date(s.created_at) >= weekStart).length;
 
       return {
@@ -268,6 +280,7 @@ export const StudentsPage = () => {
       'Level',
       'Study Mode',
       'Residential Status',
+      'Hall/Hostel',
       'Registration Date',
       'Registration Time',
       'Days Since Registration'
@@ -281,13 +294,14 @@ export const StudentsPage = () => {
         student.student_id,
         student.name,
         student.email,
-        student.gender,
-        student.nationality,
-        student.phone_number,
+        student.gender || '',
+        student.nationality || '',
+        student.phone,
         student.course,
         student.level,
         student.study_mode,
         student.residential_status,
+        student.hall || 'N/A',
         regDate.toLocaleDateString(),
         regDate.toLocaleTimeString(),
         daysSince
@@ -361,8 +375,8 @@ export const StudentsPage = () => {
 
       const dayMale = dayRegistrations.filter(s => s.gender === 'Male').length;
       const dayFemale = dayRegistrations.filter(s => s.gender === 'Female').length;
-      const dayRegular = dayRegistrations.filter(s => s.study_mode === 'regular').length;
-      const dayDistance = dayRegistrations.filter(s => s.study_mode === 'distance').length;
+      const dayRegular = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const dayDistance = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       dailyBreakdown.push({
         date: date.toLocaleDateString(),
@@ -389,8 +403,8 @@ export const StudentsPage = () => {
 
       const weekMale = weekRegs.filter(s => s.gender === 'Male').length;
       const weekFemale = weekRegs.filter(s => s.gender === 'Female').length;
-      const weekRegular = weekRegs.filter(s => s.study_mode === 'regular').length;
-      const weekDistance = weekRegs.filter(s => s.study_mode === 'distance').length;
+      const weekRegular = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const weekDistance = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       weeklyBreakdown.push({
         weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
@@ -409,8 +423,8 @@ export const StudentsPage = () => {
       const courseStudents = analyticsSource.filter(s => s.course === course);
       const courseMale = courseStudents.filter(s => s.gender === 'Male').length;
       const courseFemale = courseStudents.filter(s => s.gender === 'Female').length;
-      const courseRegular = courseStudents.filter(s => s.study_mode === 'regular').length;
-      const courseDistance = courseStudents.filter(s => s.study_mode === 'distance').length;
+      const courseRegular = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const courseDistance = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       return {
         course,
@@ -642,6 +656,7 @@ export const StudentsPage = () => {
               <th>Gender</th>
               <th>Study Mode</th>
               <th>Residential</th>
+              <th>Hall/Hostel</th>
               <th>Registration Date</th>
             </tr>
           </thead>
@@ -653,9 +668,10 @@ export const StudentsPage = () => {
                 <td>${student.email}</td>
                 <td>${student.course}</td>
                 <td>${student.level}</td>
-                <td>${student.gender}</td>
+                <td>${student.gender || 'N/A'}</td>
                 <td>${student.study_mode}</td>
                 <td>${student.residential_status}</td>
+                <td>${student.hall || 'N/A'}</td>
                 <td>${new Date(student.created_at).toLocaleDateString()}</td>
               </tr>
             `).join('')}
@@ -690,11 +706,11 @@ export const StudentsPage = () => {
     totalStudents: dataSource?.length || 0,
     maleStudents: dataSource?.filter(s => s.gender === 'Male')?.length || 0,
     femaleStudents: dataSource?.filter(s => s.gender === 'Female')?.length || 0,
-    regularStudents: dataSource?.filter(s => s.study_mode === 'regular')?.length || 0,
-    distanceStudents: dataSource?.filter(s => s.study_mode === 'distance')?.length || 0,
-    cityStudents: dataSource?.filter(s => s.study_mode === 'city_campus')?.length || 0,
-    residentStudents: dataSource?.filter(s => s.residential_status === 'resident')?.length || 0,
-    nonResidentStudents: dataSource?.filter(s => s.residential_status === 'non_resident')?.length || 0,
+    regularStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'REGULAR')?.length || 0,
+    distanceStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE')?.length || 0,
+    cityStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'CITY_CAMPUS')?.length || 0,
+    residentStudents: dataSource?.filter(s => s.residential_status?.toUpperCase() === 'RESIDENT')?.length || 0,
+    nonResidentStudents: dataSource?.filter(s => s.residential_status?.toUpperCase() === 'NON_RESIDENT')?.length || 0,
     courseDistribution: courses.map(course => ({
       course,
       count: dataSource?.filter(s => s.course === course)?.length || 0
@@ -710,11 +726,11 @@ export const StudentsPage = () => {
     totalStudents: students?.length || 0,
     maleStudents: students?.filter(s => s.gender === 'Male')?.length || 0,
     femaleStudents: students?.filter(s => s.gender === 'Female')?.length || 0,
-    regularStudents: students?.filter(s => s.study_mode === 'regular')?.length || 0,
-    distanceStudents: students?.filter(s => s.study_mode === 'distance')?.length || 0,
-    cityStudents: students?.filter(s => s.study_mode === 'city_campus')?.length || 0,
-    residentStudents: students?.filter(s => s.residential_status === 'resident')?.length || 0,
-    nonResidentStudents: students?.filter(s => s.residential_status === 'non_resident')?.length || 0,
+    regularStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'REGULAR')?.length || 0,
+    distanceStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE')?.length || 0,
+    cityStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'CITY_CAMPUS')?.length || 0,
+    residentStudents: students?.filter(s => s.residential_status?.toUpperCase() === 'RESIDENT')?.length || 0,
+    nonResidentStudents: students?.filter(s => s.residential_status?.toUpperCase() === 'NON_RESIDENT')?.length || 0,
   } : null;
 
   if (loading) {
@@ -1065,7 +1081,7 @@ export const StudentsPage = () => {
                     <td className="py-3 px-4 text-base text-gray-800 dark:text-white">Level {student.level}</td>
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                        {student.study_mode === 'regular' ? 'Regular' : student.study_mode === 'distance' ? 'Distance' : 'City Campus'}
+                        {student.study_mode?.toUpperCase() === 'REGULAR' ? 'Regular' : student.study_mode?.toUpperCase() === 'DISTANCE' ? 'Distance' : 'City Campus'}
                       </span>
                     </td>
                     <td className="py-3 px-4">
@@ -1159,13 +1175,57 @@ export const StudentsPage = () => {
                     </label>
                     <input
                       type="tel"
-                      value={selectedStudent.phone_number}
+                      value={selectedStudent.phone}
                       onChange={(e) =>
-                        setSelectedStudent({ ...selectedStudent, phone_number: e.target.value })
+                        setSelectedStudent({ ...selectedStudent, phone: e.target.value })
                       }
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Residential Status
+                    </label>
+                    <select
+                      value={selectedStudent.residential_status}
+                      onChange={(e) =>
+                        setSelectedStudent({ 
+                          ...selectedStudent, 
+                          residential_status: e.target.value,
+                          hall: e.target.value === 'non_resident' ? undefined : selectedStudent.hall
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    >
+                      <option value="resident">Resident</option>
+                      <option value="non_resident">Non-Resident</option>
+                    </select>
+                  </div>
+                  {selectedStudent.residential_status?.toUpperCase() === 'RESIDENT' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Hall/Hostel *
+                      </label>
+                      <select
+                        value={selectedStudent.hall || ''}
+                        onChange={(e) =>
+                          setSelectedStudent({ ...selectedStudent, hall: e.target.value })
+                        }
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                        required
+                      >
+                        <option value="">Select Hall/Hostel</option>
+                        <option value="Mensah Sarbah Hall">Mensah Sarbah Hall</option>
+                        <option value="Legon Hall">Legon Hall</option>
+                        <option value="Volta Hall">Volta Hall</option>
+                        <option value="Commonwealth Hall">Commonwealth Hall</option>
+                        <option value="Akuafo Hall">Akuafo Hall</option>
+                        <option value="Pentagon Hostel">Pentagon Hostel</option>
+                        <option value="Evandy Hostel">Evandy Hostel</option>
+                        <option value="SSNIT Hostel">SSNIT Hostel</option>
+                      </select>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
@@ -1173,13 +1233,16 @@ export const StudentsPage = () => {
                     { label: 'Student ID', value: selectedStudent.student_id },
                     { label: 'Name', value: selectedStudent.name },
                     { label: 'Email', value: selectedStudent.email },
-                    { label: 'Phone', value: selectedStudent.phone_number },
+                    { label: 'Phone', value: selectedStudent.phone },
                     { label: 'Gender', value: selectedStudent.gender },
                     { label: 'Nationality', value: selectedStudent.nationality },
                     { label: 'Course', value: selectedStudent.course },
                     { label: 'Level', value: selectedStudent.level },
                     { label: 'Study Mode', value: selectedStudent.study_mode },
                     { label: 'Residential Status', value: selectedStudent.residential_status },
+                    ...(selectedStudent.residential_status?.toUpperCase() === 'RESIDENT' && selectedStudent.hall 
+                      ? [{ label: 'Hall/Hostel', value: selectedStudent.hall }] 
+                      : []),
                   ].map((field) => (
                     <div key={field.label}>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{field.label}</p>

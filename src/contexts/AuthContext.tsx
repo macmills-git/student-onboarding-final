@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-// Frontend-only authentication - no API imports needed
+import { authAPI, setTokens, clearTokens, getToken } from '../services/api';
 
 interface User {
   id: string;
@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  isAuthenticated: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -39,82 +40,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const savedUser = localStorage.getItem('auth_user');
-    const savedProfile = localStorage.getItem('auth_profile');
-    const savedToken = localStorage.getItem('token');
+    // Check for existing session and validate token
+    const initAuth = async () => {
+      const token = getToken();
+      
+      if (token) {
+        try {
+          // Verify token is valid by fetching profile
+          const userProfile = await authAPI.getProfile();
+          
+          const user: User = {
+            id: userProfile.id,
+            email: `${userProfile.username}@system.local`
+          };
 
-    if (savedUser && savedProfile && savedToken) {
-      setUser(JSON.parse(savedUser));
-      setProfile(JSON.parse(savedProfile));
-    }
+          const profile: UserProfile = {
+            id: userProfile.id,
+            username: userProfile.username,
+            full_name: userProfile.full_name,
+            role: userProfile.role.toLowerCase() as 'admin' | 'clerk',
+            permissions: userProfile.permissions,
+            is_active: userProfile.is_active
+          };
 
-    setLoading(false);
+          setUser(user);
+          setProfile(profile);
+        } catch (error) {
+          // Token invalid, clear it
+          console.error('Token validation failed:', error);
+          clearTokens();
+        }
+      }
+
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const signIn = async (username: string, password: string) => {
     try {
-      // Mock authentication for demo purposes (no backend required)
-      const mockUsers = [
-        {
-          id: '1',
-          username: 'mcmills',
-          password: 'mcmills1',
-          full_name: 'McMills User',
-          role: 'admin' as const
-        },
-        {
-          id: '2',
-          username: 'admin',
-          password: 'Admin123!',
-          full_name: 'System Administrator',
-          role: 'admin' as const
-        },
-        {
-          id: '3',
-          username: 'clerk',
-          password: 'Clerk123!',
-          full_name: 'System Clerk',
-          role: 'clerk' as const
-        }
-      ];
+      // Call real API
+      const response = await authAPI.login(username, password);
+      
+      // Store tokens
+      setTokens(response.access_token, response.refresh_token);
 
-      // Find matching user
-      const mockUser = mockUsers.find(
-        u => u.username === username && u.password === password
-      );
-
-      if (!mockUser) {
-        throw new Error('Invalid username or password');
-      }
-
-      // Create mock token
-      const mockToken = `mock-jwt-token-${Date.now()}`;
-
-      // Store mock token
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('refreshToken', `refresh-${mockToken}`);
+      // Fetch user profile
+      const userProfile = await authAPI.getProfile();
 
       const user: User = {
-        id: mockUser.id,
-        email: `${mockUser.username}@system.local`
+        id: userProfile.id,
+        email: `${userProfile.username}@system.local`
       };
 
       const profile: UserProfile = {
-        id: mockUser.id,
-        username: mockUser.username,
-        full_name: mockUser.full_name,
-        role: mockUser.role,
-        permissions: {},
-        is_active: true
+        id: userProfile.id,
+        username: userProfile.username,
+        full_name: userProfile.full_name,
+        role: userProfile.role.toLowerCase() as 'admin' | 'clerk',
+        permissions: userProfile.permissions,
+        is_active: userProfile.is_active
       };
-
-      // Save to localStorage for persistence
-      localStorage.setItem('auth_user', JSON.stringify(user));
-      localStorage.setItem('auth_profile', JSON.stringify(profile));
 
       setUser(user);
       setProfile(profile);
+      
+      console.log('Profile loaded after login:', profile);
     } catch (error) {
       console.error('Login error:', error);
       throw new Error(error instanceof Error ? error.message : 'Login failed');
@@ -123,24 +115,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // Frontend-only logout - no API call needed
-      console.log('Logging out user...');
+      // Call API to invalidate token
+      await authAPI.logout();
     } catch (error) {
       console.error('Logout error:', error);
+      // Continue with logout even if API call fails
     } finally {
-      // Clear localStorage
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_profile');
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-
+      // Clear tokens and state
+      clearTokens();
       setUser(null);
       setProfile(null);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAuthenticated: !!user, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

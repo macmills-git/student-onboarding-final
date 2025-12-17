@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { studentsAPI, paymentsAPI, usersAPI } from '../services/api';
+import { useAuth } from './AuthContext';
 
 // Types
 export interface Student {
@@ -7,10 +9,13 @@ export interface Student {
     name: string;
     email: string;
     phone: string;
+    gender?: string;
+    nationality?: string;
     course: string;
     level: string;
     study_mode: string;
     residential_status: string;
+    hall?: string;
     registered_by: string;
     created_at: string;
     updated_at: string;
@@ -43,21 +48,24 @@ export interface User {
 interface DataContextType {
     // Students
     students: Student[];
-    addStudent: (student: Student) => void;
-    updateStudent: (id: string, student: Student) => void;
-    deleteStudent: (id: string) => void;
+    addStudent: (student: Student) => Promise<Student>;
+    updateStudent: (id: string, student: Student) => Promise<void>;
+    deleteStudent: (id: string) => Promise<void>;
+    refreshStudents: () => Promise<void>;
 
     // Payments
     payments: Payment[];
-    addPayment: (payment: Payment) => void;
-    updatePayment: (id: string, payment: Payment) => void;
-    deletePayment: (id: string) => void;
+    addPayment: (payment: Payment) => Promise<void>;
+    updatePayment: (id: string, payment: Payment) => Promise<void>;
+    deletePayment: (id: string) => Promise<void>;
+    refreshPayments: () => Promise<void>;
 
     // Users
     users: User[];
-    addUser: (user: User) => void;
-    updateUser: (id: string, user: User) => void;
-    deleteUser: (id: string) => void;
+    addUser: (user: User) => Promise<void>;
+    updateUser: (id: string, user: User) => Promise<void>;
+    deleteUser: (id: string) => Promise<void>;
+    refreshUsers: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -71,139 +79,206 @@ export const useData = () => {
 };
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-    // Initial data
-    const [students, setStudents] = useState<Student[]>([
-        {
-            id: '1',
-            student_id: 'STU001',
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '+233123456789',
-            course: 'Computer Science',
-            level: '300',
-            study_mode: 'regular',
-            residential_status: 'resident',
-            registered_by: 'mcmills',
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-            id: '2',
-            student_id: 'STU002',
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-            phone: '+233987654321',
-            course: 'Information Technology',
-            level: '200',
-            study_mode: 'regular',
-            residential_status: 'non-resident',
-            registered_by: 'clerk',
-            created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-        },
-        {
-            id: '3',
-            student_id: 'STU003',
-            name: 'Michael Johnson',
-            email: 'michael.johnson@example.com',
-            phone: '+233555123456',
-            course: 'Mathematical Science',
-            level: '400',
-            study_mode: 'regular',
-            residential_status: 'resident',
-            registered_by: 'mcmills',
-            created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-        }
-    ]);
+    const { user, isAuthenticated } = useAuth();
+    const [students, setStudents] = useState<Student[]>([]);
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
 
-    const [payments, setPayments] = useState<Payment[]>([
-        {
-            id: '1',
-            student_id: '1',
-            student_name: 'John Doe',
-            amount: 2500.00,
-            payment_method: 'momo',
-            reference_id: 'PAY001',
-            operator: 'MTN',
-            recorded_by: 'mcmills',
-            payment_date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-        },
-        {
-            id: '2',
-            student_id: '2',
-            student_name: 'Jane Smith',
-            amount: 1800.00,
-            payment_method: 'cash',
-            reference_id: 'PAY002',
-            operator: '',
-            recorded_by: 'clerk',
-            payment_date: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-            created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+    // Fetch data when user is authenticated
+    useEffect(() => {
+        if (!isAuthenticated) {
+            // Clear data when logged out
+            setStudents([]);
+            setPayments([]);
+            setUsers([]);
+            return;
         }
-    ]);
 
-    const [users, setUsers] = useState<User[]>([
-        {
-            id: '1',
-            username: 'mcmills',
-            full_name: 'McMills User',
-            role: 'admin',
-            permissions: {},
-            is_active: true,
-            created_at: '2024-01-01T00:00:00Z',
-            updated_at: '2024-01-01T00:00:00Z'
-        },
-        {
-            id: '2',
-            username: 'clerk',
-            full_name: 'System Clerk',
-            role: 'clerk',
-            permissions: {},
-            is_active: true,
-            created_at: '2024-01-01T00:00:00Z',
-            updated_at: '2024-01-01T00:00:00Z'
+        const fetchData = async () => {
+            try {
+                const [studentsData, paymentsData, usersData] = await Promise.all([
+                    studentsAPI.getAll({ limit: 1000 }).catch(() => []),
+                    paymentsAPI.getAll({ limit: 1000 }).catch(() => []),
+                    usersAPI.getAll({ limit: 1000 }).catch(() => [])
+                ]);
+                
+                setStudents(studentsData);
+                setPayments(paymentsData);
+                setUsers(usersData);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, [isAuthenticated]);
+
+    // Refresh functions
+    const refreshStudents = async () => {
+        try {
+            const data = await studentsAPI.getAll({ limit: 1000 });
+            setStudents(data);
+        } catch (error) {
+            console.error('Error refreshing students:', error);
         }
-    ]);
+    };
+
+    const refreshPayments = async () => {
+        try {
+            const data = await paymentsAPI.getAll({ limit: 1000 });
+            setPayments(data);
+        } catch (error) {
+            console.error('Error refreshing payments:', error);
+        }
+    };
+
+    const refreshUsers = async () => {
+        try {
+            const data = await usersAPI.getAll({ limit: 1000 });
+            setUsers(data);
+        } catch (error) {
+            console.error('Error refreshing users:', error);
+        }
+    };
 
     // Student functions
-    const addStudent = (student: Student) => {
-        setStudents(prev => [student, ...prev]);
+    const addStudent = async (student: Student) => {
+        try {
+            const newStudent = await studentsAPI.create({
+                student_id: student.student_id,
+                name: student.name,
+                email: student.email,
+                phone: student.phone,
+                gender: student.gender,
+                nationality: student.nationality,
+                course: student.course,
+                level: student.level,
+                study_mode: student.study_mode.toUpperCase(),
+                residential_status: student.residential_status.toUpperCase(),
+                hall: student.hall
+            });
+            setStudents(prev => [newStudent, ...prev]);
+            return newStudent;
+        } catch (error) {
+            console.error('Error adding student:', error);
+            throw error;
+        }
     };
 
-    const updateStudent = (id: string, updatedStudent: Student) => {
-        setStudents(prev => prev.map(s => s.id === id ? updatedStudent : s));
+    const updateStudent = async (id: string, updatedStudent: Student) => {
+        try {
+            const updated = await studentsAPI.update(id, {
+                student_id: updatedStudent.student_id,
+                name: updatedStudent.name,
+                email: updatedStudent.email,
+                phone: updatedStudent.phone,
+                gender: updatedStudent.gender,
+                nationality: updatedStudent.nationality,
+                course: updatedStudent.course,
+                level: updatedStudent.level,
+                study_mode: updatedStudent.study_mode.toUpperCase(),
+                residential_status: updatedStudent.residential_status.toUpperCase(),
+                hall: updatedStudent.hall
+            });
+            setStudents(prev => prev.map(s => s.id === id ? updated : s));
+        } catch (error) {
+            console.error('Error updating student:', error);
+            throw error;
+        }
     };
 
-    const deleteStudent = (id: string) => {
-        setStudents(prev => prev.filter(s => s.id !== id));
+    const deleteStudent = async (id: string) => {
+        try {
+            await studentsAPI.delete(id);
+            setStudents(prev => prev.filter(s => s.id !== id));
+        } catch (error) {
+            console.error('Error deleting student:', error);
+            throw error;
+        }
     };
 
     // Payment functions
-    const addPayment = (payment: Payment) => {
-        setPayments(prev => [payment, ...prev]);
+    const addPayment = async (payment: Payment) => {
+        try {
+            const newPayment = await paymentsAPI.create({
+                student_id: payment.student_id,
+                amount: payment.amount,
+                payment_method: payment.payment_method.toUpperCase(),
+                reference_id: payment.reference_id,
+                operator: payment.operator
+            });
+            setPayments(prev => [newPayment, ...prev]);
+        } catch (error) {
+            console.error('Error adding payment:', error);
+            throw error;
+        }
     };
 
-    const updatePayment = (id: string, updatedPayment: Payment) => {
-        setPayments(prev => prev.map(p => p.id === id ? updatedPayment : p));
+    const updatePayment = async (id: string, updatedPayment: Payment) => {
+        try {
+            const updated = await paymentsAPI.update(id, {
+                amount: updatedPayment.amount,
+                payment_method: updatedPayment.payment_method.toUpperCase(),
+                reference_id: updatedPayment.reference_id,
+                operator: updatedPayment.operator
+            });
+            setPayments(prev => prev.map(p => p.id === id ? updated : p));
+        } catch (error) {
+            console.error('Error updating payment:', error);
+            throw error;
+        }
     };
 
-    const deletePayment = (id: string) => {
-        setPayments(prev => prev.filter(p => p.id !== id));
+    const deletePayment = async (id: string) => {
+        try {
+            await paymentsAPI.delete(id);
+            setPayments(prev => prev.filter(p => p.id !== id));
+        } catch (error) {
+            console.error('Error deleting payment:', error);
+            throw error;
+        }
     };
 
     // User functions
-    const addUser = (user: User) => {
-        setUsers(prev => [user, ...prev]);
+    const addUser = async (user: User) => {
+        try {
+            const newUser = await usersAPI.create({
+                username: user.username,
+                full_name: user.full_name,
+                email: '',
+                password: 'ChangeMe123!', // Default password
+                role: user.role.toUpperCase()
+            });
+            setUsers(prev => [newUser, ...prev]);
+        } catch (error) {
+            console.error('Error adding user:', error);
+            throw error;
+        }
     };
 
-    const updateUser = (id: string, updatedUser: User) => {
-        setUsers(prev => prev.map(u => u.id === id ? updatedUser : u));
+    const updateUser = async (id: string, updatedUser: User) => {
+        try {
+            const updated = await usersAPI.update(id, {
+                username: updatedUser.username,
+                full_name: updatedUser.full_name,
+                role: updatedUser.role.toUpperCase(),
+                is_active: updatedUser.is_active
+            });
+            setUsers(prev => prev.map(u => u.id === id ? updated : u));
+        } catch (error) {
+            console.error('Error updating user:', error);
+            throw error;
+        }
     };
 
-    const deleteUser = (id: string) => {
-        setUsers(prev => prev.filter(u => u.id !== id));
+    const deleteUser = async (id: string) => {
+        try {
+            await usersAPI.delete(id);
+            setUsers(prev => prev.filter(u => u.id !== id));
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            throw error;
+        }
     };
 
     return (
@@ -212,14 +287,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             addStudent,
             updateStudent,
             deleteStudent,
+            refreshStudents,
             payments,
             addPayment,
             updatePayment,
             deletePayment,
+            refreshPayments,
             users,
             addUser,
             updateUser,
-            deleteUser
+            deleteUser,
+            refreshUsers
         }}>
             {children}
         </DataContext.Provider>

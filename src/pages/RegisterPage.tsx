@@ -17,6 +17,7 @@ interface AcademicDetails {
   level: string;
   study_mode: 'regular' | 'distance' | 'city_campus';
   residential_status: 'resident' | 'non_resident';
+  hall: string;
 }
 
 interface FinancialDetails {
@@ -50,6 +51,7 @@ export const RegisterPage = () => {
     level: '',
     study_mode: 'regular',
     residential_status: 'resident',
+    hall: '',
   });
 
   const [financialDetails, setFinancialDetails] = useState<FinancialDetails>({
@@ -80,6 +82,27 @@ export const RegisterPage = () => {
     'International',
   ];
 
+  const halls = [
+    'Mensah Sarbah Hall',
+    'Legon Hall',
+    'Volta Hall',
+    'Commonwealth Hall',
+    'Akuafo Hall',
+    'Pentagon Hostel',
+    'Evandy Hostel',
+    "Bani Hostel",
+    'Limann', 
+    'Kwapong', 
+    'Elizabeth Sey', 
+    'Jean Nelson',
+    'Valco', 
+    'International Hostels', 
+    'Jubilee', 
+    'Diamond Jubilee',
+    "JAMES TOP NELSON YANKAH HALL (TF)",
+    "Other"
+  ];
+
   const handleNext = () => {
     if (step < 3) setStep(step + 1);
   };
@@ -96,44 +119,45 @@ export const RegisterPage = () => {
     try {
       // Create new student record
       const newStudent: Student = {
-        id: String(Date.now()),
+        id: '',
         student_id: personalDetails.student_id,
         name: personalDetails.name,
         email: personalDetails.email,
         phone: personalDetails.phone_number,
+        gender: personalDetails.gender,
+        nationality: personalDetails.nationality,
         course: academicDetails.course,
         level: academicDetails.level,
         study_mode: academicDetails.study_mode,
         residential_status: academicDetails.residential_status,
-        registered_by: 'mcmills', // Current user
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        hall: academicDetails.residential_status === 'resident' ? academicDetails.hall : undefined,
+        registered_by: '',
+        created_at: '',
+        updated_at: ''
       };
 
-      // Add student to shared context
-      addStudent(newStudent);
+      // Add student via API
+      const createdStudent = await addStudent(newStudent);
 
       // Create payment record if amount is provided
       if (financialDetails.amount && parseFloat(financialDetails.amount) > 0) {
         const newPayment: Payment = {
-          id: String(Date.now() + 1),
-          student_id: newStudent.id,
-          student_name: newStudent.name,
+          id: '',
+          student_id: createdStudent.id,
+          student_name: createdStudent.name,
           amount: parseFloat(financialDetails.amount),
-          payment_method: financialDetails.payment_method,
+          // @ts-ignore
+          payment_method: financialDetails.payment_method.toUpperCase(),
           reference_id: financialDetails.reference_id,
           operator: financialDetails.operator || '',
-          recorded_by: 'mcmills', // Current user
-          payment_date: new Date().toISOString(),
-          created_at: new Date().toISOString()
+          recorded_by: '',
+          payment_date: '',
+          created_at: ''
         };
 
-        // Add payment to shared context
-        addPayment(newPayment);
+        // Add payment via API
+        await addPayment(newPayment);
       }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Show success modal
       setRegisteredStudentName(personalDetails.name);
@@ -151,7 +175,16 @@ export const RegisterPage = () => {
       return Object.values(personalDetails).every((val) => val.trim() !== '');
     }
     if (step === 2) {
-      return Object.values(academicDetails).every((val) => val.trim() !== '');
+      // Check if all required fields are filled
+      const requiredFields = [academicDetails.course, academicDetails.level, academicDetails.study_mode, academicDetails.residential_status];
+      const allFieldsFilled = requiredFields.every((val) => val.trim() !== '');
+      
+      // If residential_status is 'resident', hall must be specified
+      if (academicDetails.residential_status === 'resident') {
+        return allFieldsFilled && academicDetails.hall.trim() !== '';
+      }
+      
+      return allFieldsFilled;
     }
     if (step === 3) {
       return financialDetails.amount && financialDetails.reference_id;
@@ -311,7 +344,6 @@ export const RegisterPage = () => {
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
-                    <option value="Other">Other</option>
                   </select>
                 </div>
 
@@ -432,6 +464,7 @@ export const RegisterPage = () => {
                       setAcademicDetails({
                         ...academicDetails,
                         residential_status: e.target.value as any,
+                        hall: e.target.value === 'non_resident' ? '' : academicDetails.hall,
                       })
                     }
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -441,6 +474,36 @@ export const RegisterPage = () => {
                     <option value="non_resident">Non-Resident</option>
                   </select>
                 </div>
+
+                {/* Hall/Hostel - Only for Residents */}
+                {academicDetails.residential_status === 'resident' && (
+                  <div className="space-y-2 animate-slide-in">
+                    <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                      Hall/Hostel *
+                    </label>
+                    <select
+                      value={academicDetails.hall}
+                      onChange={(e) =>
+                        setAcademicDetails({
+                          ...academicDetails,
+                          hall: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      required
+                    >
+                      <option value="">Select Hall/Hostel</option>
+                      {halls.map((hall) => (
+                        <option key={hall} value={hall}>
+                          {hall}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Required for resident students
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -502,20 +565,26 @@ export const RegisterPage = () => {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Clerk Name {financialDetails.payment_method === 'momo' && '(Required)'}
-                  </label>
-                  <input
-                    type="text"
-                    value={financialDetails.operator}
-                    onChange={(e) =>
-                      setFinancialDetails({ ...financialDetails, operator: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="Clerk name"
-                  />
-                </div>
+                {financialDetails.payment_method === 'momo' && (
+                  <div className="space-y-2">
+                    <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                      Mobile Money Operator *
+                    </label>
+                    <select
+                      value={financialDetails.operator}
+                      onChange={(e) =>
+                        setFinancialDetails({ ...financialDetails, operator: e.target.value })
+                      }
+                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      required
+                    >
+                      <option value="">Select operator</option>
+                      <option value="MTN">MTN Mobile Money</option>
+                      <option value="Telecel">Telecel Cash</option>
+                      <option value="AirtelTigo">AirtelTigo Money</option>
+                    </select>
+                  </div>
+                )}
               </div>
             )}
 
@@ -595,6 +664,7 @@ export const RegisterPage = () => {
                     level: '',
                     study_mode: 'regular',
                     residential_status: 'resident',
+                    hall: '',
                   });
                   setFinancialDetails({
                     amount: '',

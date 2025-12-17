@@ -1,9 +1,20 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp, Clock, User as UserIcon, CreditCard, LucideIcon } from 'lucide-react';
 import { useData, User } from '../contexts/DataContext';
 
+interface UserActivity {
+  id: string;
+  type: 'registration' | 'edit' | 'payment' | 'delete';
+  action: string;
+  details: string;
+  timestamp: string;
+  icon: LucideIcon;
+  color: string;
+  bgColor: string;
+}
+
 export const UsersPage = () => {
-  const { users, addUser, updateUser, deleteUser } = useData();
+  const { users, addUser, updateUser, deleteUser, students, payments } = useData();
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -35,6 +46,57 @@ export const UsersPage = () => {
         setIsPerformanceVisible(true);
       }, 100);
     }
+  };
+
+  const getUserActivities = (username: string): UserActivity[] => {
+    const activities: UserActivity[] = [];
+
+    // Get student registrations by this user
+    const userStudents = students.filter(student => student.registered_by === username);
+    userStudents.forEach(student => {
+      activities.push({
+        id: `student-${student.id}`,
+        type: 'registration',
+        action: 'Registered Student',
+        details: student.name,
+        timestamp: student.created_at,
+        icon: UserIcon,
+        color: 'text-green-600 dark:text-green-400',
+        bgColor: 'bg-green-100 dark:bg-green-900/30'
+      });
+
+      // Check if student was updated by this user
+      if (student.updated_at !== student.created_at) {
+        activities.push({
+          id: `student-edit-${student.id}`,
+          type: 'edit',
+          action: 'Updated Student',
+          details: student.name,
+          timestamp: student.updated_at,
+          icon: Edit,
+          color: 'text-blue-600 dark:text-blue-400',
+          bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+        });
+      }
+    });
+
+    // Get payments recorded by this user
+    const userPayments = payments.filter(payment => payment.recorded_by === username);
+    userPayments.forEach(payment => {
+      activities.push({
+        id: `payment-${payment.id}`,
+        type: 'payment',
+        action: 'Recorded Payment',
+        details: `GH₵${payment.amount.toLocaleString()} from ${payment.student_name}`,
+        timestamp: payment.created_at,
+        icon: CreditCard,
+        color: 'text-purple-600 dark:text-purple-400',
+        bgColor: 'bg-purple-100 dark:bg-purple-900/30'
+      });
+    });
+
+    // Sort activities by timestamp (most recent first)
+    return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   };
 
   const getUserPerformance = (userId: string) => {
@@ -367,6 +429,65 @@ export const UsersPage = () => {
                         <span className="text-gray-500 dark:text-gray-400">Avg: {Math.round(performance.registeredThisWeek / 7 * 10) / 10}/day</span>
                         <span className="text-gray-400 dark:text-gray-500">Last: {Math.floor(Math.random() * 10) + 1}m ago</span>
                       </div>
+                    </div>
+
+                    {/* User Activity Logs */}
+                    <div className="mt-6 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-gray-800/30 rounded-2xl p-6 border-2 border-gray-200 dark:border-gray-700 w-full">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h4 className="text-lg font-bold text-gray-800 dark:text-white">Recent Activity</h4>
+                        <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full">
+                          {getUserActivities(user.username).length} activities
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {getUserActivities(user.username).length > 0 ? (
+                          getUserActivities(user.username).slice(0, 10).map((activity) => {
+                            const Icon = activity.icon;
+                            return (
+                              <div
+                                key={activity.id}
+                                className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-sm transition-all"
+                              >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activity.bgColor}`}>
+                                  <Icon className={`w-4 h-4 ${activity.color}`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm font-medium text-gray-800 dark:text-white">
+                                      {activity.action}
+                                    </p>
+                                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                      <Clock className="w-3 h-3" />
+                                      {new Date(activity.timestamp).toLocaleDateString()}
+                                    </div>
+                                  </div>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                    {activity.details}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    {new Date(activity.timestamp).toLocaleTimeString()}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="text-center py-8">
+                            <Activity className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No recent activity</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {getUserActivities(user.username).length > 10 && (
+                        <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 text-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Showing 10 of {getUserActivities(user.username).length} activities
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

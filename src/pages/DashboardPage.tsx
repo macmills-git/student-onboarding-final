@@ -4,6 +4,7 @@ import {
   CreditCard, BarChart3, Activity, PieChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useData } from '../contexts/DataContext';
 // Frontend-only dashboard - no API imports needed
 
 interface DashboardStats {
@@ -18,6 +19,7 @@ interface UserAnalytics {
   registeredToday: number;
   revenueToday: number;
   registeredThisWeek: number;
+  totalRevenue: number;
 }
 
 interface RecentActivity {
@@ -29,6 +31,7 @@ interface RecentActivity {
 }
 
 export const DashboardPage = () => {
+  const { students, payments } = useData();
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalRevenue: 0,
@@ -41,6 +44,7 @@ export const DashboardPage = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isChartVisible, setIsChartVisible] = useState(false);
   const [isStaffVisible, setIsStaffVisible] = useState(false);
+  const [showAllPayments, setShowAllPayments] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
   const staffRef = useRef<HTMLDivElement>(null);
 
@@ -48,9 +52,7 @@ export const DashboardPage = () => {
     fetchDashboardData();
     // Trigger animation after component mounts
     setTimeout(() => setIsVisible(true), 100);
-
-
-  }, []);
+  }, [students, payments]); // Re-fetch when students or payments change
 
   useEffect(() => {
     let hasTriggered = false;
@@ -131,16 +133,19 @@ export const DashboardPage = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    // Frontend-only: Use static data directly (no API calls)
+    // Frontend-only: Use real data from context
 
-    // Set dashboard stats
+    // Calculate total revenue from payments
+    const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+    // Set dashboard stats using real data
     setStats({
-      totalStudents: 1247,
-      totalRevenue: 186750.00,
-      activeUsers: 3,
+      totalStudents: students.length,
+      totalRevenue: totalRevenue,
+      activeUsers: 3, // Keep static for demo
     });
 
-    // Set user analytics
+    // Set user analytics (keep static for demo but could be calculated from real data)
     setUserAnalytics([
       {
         user_id: '1',
@@ -160,46 +165,34 @@ export const DashboardPage = () => {
       }
     ]);
 
-    // Set recent students
-    const today = new Date();
-    setRecentStudents([
-      {
-        id: '1',
-        type: 'student' as const,
-        name: 'John Doe',
-        timestamp: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
-      },
-      {
-        id: '2',
-        type: 'student' as const,
-        name: 'Jane Smith',
-        timestamp: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
-      },
-      {
-        id: '3',
-        type: 'student' as const,
-        name: 'Michael Johnson',
-        timestamp: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString() // 6 hours ago
-      }
-    ]);
+    // Get recent students from real data (sort by created_at and take the most recent)
+    const sortedStudents = [...students]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5); // Get top 5 most recent
 
-    // Set recent payments
-    setRecentPayments([
-      {
-        id: '1',
-        type: 'payment' as const,
-        name: 'John Doe',
-        amount: 2500.00,
-        timestamp: new Date(today.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1 hour ago
-      },
-      {
-        id: '2',
-        type: 'payment' as const,
-        name: 'Jane Smith',
-        amount: 1800.00,
-        timestamp: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString() // 3 hours ago
-      }
-    ]);
+    const recentStudentsData: RecentActivity[] = sortedStudents.map(student => ({
+      id: student.id,
+      type: 'student' as const,
+      name: student.name,
+      timestamp: student.created_at
+    }));
+
+    setRecentStudents(recentStudentsData);
+
+    // Get recent payments from real data (sort by created_at and take the most recent)
+    const sortedPayments = [...payments]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5); // Get top 5 most recent
+
+    const recentPaymentsData: RecentActivity[] = sortedPayments.map(payment => ({
+      id: payment.id,
+      type: 'payment' as const,
+      name: payment.student_name,
+      amount: payment.amount,
+      timestamp: payment.created_at
+    }));
+
+    setRecentPayments(recentPaymentsData);
 
     // Simulate loading delay for better UX
     setTimeout(() => {
@@ -339,7 +332,7 @@ export const DashboardPage = () => {
             <div className="bg-gray-100 dark:bg-gray-700/30 rounded-lg p-4 border-2 border-gray-300 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <span className="text-base font-bold text-gray-800 dark:text-white">Total Enrollment</span>
-                <span className="text-xl font-extrabold text-gray-800 dark:text-white">{stats.totalStudents.toLocaleString()}</span>
+                <span className="text-xl font-extrabold text-gray-800 dark:text-white">{students.length.toLocaleString()}</span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">7 Programs</p>
             </div>
@@ -411,7 +404,7 @@ export const DashboardPage = () => {
                 <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/30 font-bold">
                   <td className="py-4 px-4"></td>
                   <td className="py-4 px-4 text-base font-bold text-gray-800 dark:text-white">Total Enrollment</td>
-                  <td className="py-4 px-4 text-center text-xl font-extrabold text-gray-800 dark:text-white">{stats.totalStudents.toLocaleString()}</td>
+                  <td className="py-4 px-4 text-center text-xl font-extrabold text-gray-800 dark:text-white">{students.length.toLocaleString()}</td>
                   <td className="py-4 px-4 text-base text-gray-600 dark:text-gray-400">7 Programs</td>
                 </tr>
               </tbody>
@@ -594,24 +587,30 @@ export const DashboardPage = () => {
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Recent Students</h2>
             </div>
             <div className="space-y-2">
-              {recentStudents.slice(0, 3).map((student) => (
-                <div
-                  key={student.id}
-                  className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      {student.name.charAt(0)}
+              {recentStudents.length > 0 ? (
+                recentStudents.slice(0, 3).map((student) => (
+                  <div
+                    key={student.id}
+                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        {student.name.charAt(0)}
+                      </div>
+                      <span className="text-sm font-medium text-gray-800 dark:text-white">
+                        {student.name}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-gray-800 dark:text-white">
-                      {student.name}
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(student.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(student.timestamp).toLocaleTimeString()}
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No recent students</p>
                 </div>
-              ))}
+              )}
             </div>
             <div className="mt-4 text-center">
               <Link
@@ -628,37 +627,56 @@ export const DashboardPage = () => {
               <CreditCard className="w-5 h-5 text-blue-500" />
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Recent Payments</h2>
             </div>
-            <div className="space-y-2">
-              {recentPayments.slice(0, 2).map((payment) => (
-                <div
-                  key={payment.id}
-                  className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      {payment.name.charAt(0)}
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {recentPayments.length > 0 ? (
+                (showAllPayments ? recentPayments : recentPayments.slice(0, 2)).map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        {payment.name.charAt(0)}
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-800 dark:text-white block">
+                          {payment.name}
+                        </span>
+                        <span className="text-sm text-green-600 dark:text-green-400 font-bold">
+                          GH₵ {payment.amount?.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-sm font-medium text-gray-800 dark:text-white block">
-                        {payment.name}
+                    <div className="text-right">
+                      <span className="text-sm text-gray-500 dark:text-gray-400 block">
+                        {new Date(payment.timestamp).toLocaleTimeString()}
                       </span>
-                      <span className="text-sm text-green-600 dark:text-green-400 font-bold">
-                        GH₵ {payment.amount?.toLocaleString()}
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        {new Date(payment.timestamp).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(payment.timestamp).toLocaleTimeString()}
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No recent payments</p>
                 </div>
-              ))}
+              )}
             </div>
-            <div className="mt-4 text-center">
+            <div className="mt-4 flex items-center justify-between">
+              {recentPayments.length > 2 && (
+                <button
+                  onClick={() => setShowAllPayments(!showAllPayments)}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
+                >
+                  {showAllPayments ? 'View Less' : `View More (${recentPayments.length - 2} more)`}
+                </button>
+              )}
               <Link
                 to="/payments"
-                className="text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
               >
-                View More Payments →
+                All Payments →
               </Link>
             </div>
           </div>

@@ -1,10 +1,13 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Check, User, GraduationCap, DollarSign, FileText, Activity, Phone, Mail, CreditCard, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useData, Student, Payment } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PersonalDetails {
-  name: string;
+  surname: string;
+  first_name: string;
+  other_name: string;
   email: string;
   student_id: string;
   gender: string;
@@ -22,13 +25,15 @@ interface AcademicDetails {
 interface FinancialDetails {
   amount: string;
   reference_id: string;
-  payment_method: 'cash' | 'momo';
-  operator: string;
+  payment_method: 'cash' | 'momo' | 'bank';
+  mobile_number: string;
+  bank_name: string;
 }
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
   const { students, addStudent, addPayment } = useData();
+  const { profile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,18 +41,21 @@ export const RegisterPage = () => {
   const [registeredStudentName, setRegisteredStudentName] = useState('');
   const [registeredStudentId, setRegisteredStudentId] = useState('');
 
+
   const [personalDetails, setPersonalDetails] = useState<PersonalDetails>({
-    name: '',
+    surname: '',
+    first_name: '',
+    other_name: '',
     email: '',
     student_id: '',
-    gender: '',
-    nationality: '',
+    gender: 'Male',
+    nationality: 'Ghanaian',
     phone_number: '',
   });
 
   const [academicDetails, setAcademicDetails] = useState<AcademicDetails>({
-    course: '',
-    level: '',
+    course: 'Computer Science',
+    level: '100',
     study_mode: 'regular',
     residential_status: 'resident',
   });
@@ -56,7 +64,8 @@ export const RegisterPage = () => {
     amount: '',
     reference_id: '',
     payment_method: 'cash',
-    operator: '',
+    mobile_number: '',
+    bank_name: 'GCB Bank',
   });
 
   const courses = [
@@ -71,12 +80,48 @@ export const RegisterPage = () => {
 
   const levels = ['100', '200', '300', '400'];
 
+  // Clear saved data function
+  const clearSavedData = () => {
+    localStorage.removeItem('registration_form_data');
+  };
+
+  // Load saved form data on component mount (simplified)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('registration_form_data');
+      if (saved) {
+        const data = JSON.parse(saved);
+        console.log('Loading saved data:', data); // Debug log
+
+        if (data.personalDetails) setPersonalDetails(data.personalDetails);
+        if (data.academicDetails) setAcademicDetails(data.academicDetails);
+        if (data.financialDetails) setFinancialDetails(data.financialDetails);
+        if (data.step) setStep(data.step);
+      }
+    } catch (error) {
+      console.error('Error loading saved form data:', error);
+    }
+  }, []);
+
+  // Simple auto-save functionality
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const formData = {
+        step,
+        personalDetails,
+        academicDetails,
+        financialDetails,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('registration_form_data', JSON.stringify(formData));
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [step, personalDetails, academicDetails, financialDetails]);
+
   const nationalities = [
     'Ghanaian',
-    'Nigerian',
-    'Kenyan',
-    'South African',
-    'Other African',
+    'Other Africa',
     'International',
   ];
 
@@ -94,18 +139,21 @@ export const RegisterPage = () => {
     setError('');
 
     try {
+      // Create full name from parts
+      const fullName = `${personalDetails.surname} ${personalDetails.first_name} ${personalDetails.other_name}`.trim();
+
       // Create new student record
       const newStudent: Student = {
         id: String(Date.now()),
         student_id: personalDetails.student_id,
-        name: personalDetails.name,
+        name: fullName,
         email: personalDetails.email,
         phone: personalDetails.phone_number,
         course: academicDetails.course,
         level: academicDetails.level,
         study_mode: academicDetails.study_mode,
         residential_status: academicDetails.residential_status,
-        registered_by: 'mcmills', // Current user
+        registered_by: profile?.username || 'system', // Current logged-in user
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -122,8 +170,8 @@ export const RegisterPage = () => {
           amount: parseFloat(financialDetails.amount),
           payment_method: financialDetails.payment_method,
           reference_id: financialDetails.reference_id,
-          operator: financialDetails.operator || '',
-          recorded_by: 'mcmills', // Current user
+          operator: profile?.full_name || profile?.username || 'system', // Current logged-in user
+          recorded_by: profile?.username || 'system', // Current logged-in user
           payment_date: new Date().toISOString(),
           created_at: new Date().toISOString()
         };
@@ -135,10 +183,11 @@ export const RegisterPage = () => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Show success modal
-      setRegisteredStudentName(personalDetails.name);
+      // Show success modal and clear saved data
+      setRegisteredStudentName(fullName);
       setRegisteredStudentId(personalDetails.student_id);
       setShowSuccessModal(true);
+      clearSavedData(); // Clear saved form data after successful submission
     } catch (err: any) {
       setError(err.message || 'Failed to register student');
     } finally {
@@ -148,13 +197,28 @@ export const RegisterPage = () => {
 
   const isStepValid = () => {
     if (step === 1) {
-      return Object.values(personalDetails).every((val) => val.trim() !== '');
+      // Require surname, first_name, email, student_id, gender, nationality, phone_number
+      // other_name is optional
+      return personalDetails.surname.trim() !== '' &&
+        personalDetails.first_name.trim() !== '' &&
+        personalDetails.email.trim() !== '' &&
+        personalDetails.student_id.trim() !== '' &&
+        personalDetails.gender.trim() !== '' &&
+        personalDetails.nationality.trim() !== '' &&
+        personalDetails.phone_number.trim() !== '';
     }
     if (step === 2) {
       return Object.values(academicDetails).every((val) => val.trim() !== '');
     }
     if (step === 3) {
-      return financialDetails.amount && financialDetails.reference_id;
+      const baseValid = financialDetails.amount && financialDetails.reference_id;
+      if (financialDetails.payment_method === 'momo') {
+        return baseValid && financialDetails.mobile_number.trim() !== '';
+      }
+      if (financialDetails.payment_method === 'bank') {
+        return baseValid && financialDetails.bank_name.trim() !== '';
+      }
+      return baseValid;
     }
     return false;
   };
@@ -228,21 +292,56 @@ export const RegisterPage = () => {
             {/* Step 1: Personal Details */}
             {step === 1 && (
               <div className="space-y-4 animate-slide-in">
+                {/* Name Fields - Side by Side */}
                 <div className="space-y-2">
                   <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
                     <User className="w-3 h-3" />
-                    Full Name *
+                    Student Name *
                   </label>
-                  <input
-                    type="text"
-                    value={personalDetails.name}
-                    onChange={(e) =>
-                      setPersonalDetails({ ...personalDetails, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="Enter student's full name"
-                    required
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <input
+                        type="text"
+                        value={personalDetails.surname}
+                        onChange={(e) =>
+                          setPersonalDetails({ ...personalDetails, surname: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Surname *"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={personalDetails.first_name}
+                        onChange={(e) =>
+                          setPersonalDetails({ ...personalDetails, first_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="First Name *"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={personalDetails.other_name}
+                        onChange={(e) =>
+                          setPersonalDetails({ ...personalDetails, other_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Other Name (Optional)"
+                      />
+                    </div>
+                  </div>
+                  {(personalDetails.surname || personalDetails.first_name || personalDetails.other_name) && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Full name: <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {`${personalDetails.surname} ${personalDetails.first_name} ${personalDetails.other_name}`.trim() || 'Enter name above'}
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -308,7 +407,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
@@ -327,7 +425,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Nationality</option>
                     {nationalities.map((nat) => (
                       <option key={nat} value={nat}>
                         {nat}
@@ -371,7 +468,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Course</option>
                     {courses.map((course) => (
                       <option key={course} value={course}>
                         {course}
@@ -392,7 +488,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Level</option>
                     {levels.map((level) => (
                       <option key={level} value={level}>
                         Level {level}
@@ -455,14 +550,24 @@ export const RegisterPage = () => {
                   <input
                     type="number"
                     step="0.01"
+                    list="amount-options"
                     value={financialDetails.amount}
                     onChange={(e) =>
                       setFinancialDetails({ ...financialDetails, amount: e.target.value })
                     }
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="0.00"
+                    placeholder="Select or enter amount"
                     required
                   />
+                  <datalist id="amount-options">
+                    <option value="30">30</option>
+                    <option value="100">100</option>
+                    <option value="130">130</option>
+                    <option value="150">150</option>
+                  </datalist>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Common amounts: GH₵30, GH₵100, GH₵130, GH₵150 or enter custom amount
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -502,19 +607,58 @@ export const RegisterPage = () => {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Clerk Name {financialDetails.payment_method === 'momo' && '(Required)'}
-                  </label>
-                  <input
-                    type="text"
-                    value={financialDetails.operator}
-                    onChange={(e) =>
-                      setFinancialDetails({ ...financialDetails, operator: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="Clerk name"
-                  />
+                {financialDetails.payment_method === 'momo' && (
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                      <Phone className="w-3 h-3" />
+                      Mobile Number *
+                    </label>
+                    <input
+                      type="tel"
+                      value={financialDetails.mobile_number}
+                      onChange={(e) =>
+                        setFinancialDetails({ ...financialDetails, mobile_number: e.target.value })
+                      }
+                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                      placeholder="+233 XX XXX XXXX"
+                      required
+                    />
+                  </div>
+                )}
+
+                {financialDetails.payment_method === 'bank' && (
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                      <CreditCard className="w-3 h-3" />
+                      Bank Name *
+                    </label>
+                    <select
+                      value={financialDetails.bank_name}
+                      onChange={(e) =>
+                        setFinancialDetails({ ...financialDetails, bank_name: e.target.value })
+                      }
+                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      required
+                    >
+                      <option value="GCB Bank">GCB Bank</option>
+                      <option value="Ecobank">Ecobank</option>
+                      <option value="Standard Chartered">Standard Chartered</option>
+                      <option value="Absa Bank">Absa Bank</option>
+                      <option value="Fidelity Bank">Fidelity Bank</option>
+                      <option value="CalBank">CalBank</option>
+                      <option value="UMB">UMB</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <strong>Recorded by:</strong> {profile?.full_name || profile?.username || 'System'}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    All transactions are automatically linked to your account
+                  </p>
                 </div>
               </div>
             )}
@@ -524,6 +668,8 @@ export const RegisterPage = () => {
                 {error}
               </div>
             )}
+
+
 
             {/* Navigation Buttons */}
             <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -583,16 +729,18 @@ export const RegisterPage = () => {
                   setShowSuccessModal(false);
                   setStep(1);
                   setPersonalDetails({
-                    name: '',
+                    surname: '',
+                    first_name: '',
+                    other_name: '',
                     email: '',
                     student_id: '',
-                    gender: '',
-                    nationality: '',
+                    gender: 'Male',
+                    nationality: 'Ghanaian',
                     phone_number: '',
                   });
                   setAcademicDetails({
-                    course: '',
-                    level: '',
+                    course: 'Computer Science',
+                    level: '100',
                     study_mode: 'regular',
                     residential_status: 'resident',
                   });
@@ -600,7 +748,8 @@ export const RegisterPage = () => {
                     amount: '',
                     reference_id: '',
                     payment_method: 'cash',
-                    operator: '',
+                    mobile_number: '',
+                    bank_name: 'GCB Bank',
                   });
                 }}
                 className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-all"

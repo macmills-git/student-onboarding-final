@@ -1,7 +1,7 @@
 import { useEffect, useState, FormEvent, useRef } from 'react';
 import { DollarSign, CreditCard, Smartphone, Plus, X, TrendingUp, Download, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
-// Frontend-only payments page - using shared context
 import { useData, Payment } from '../contexts/DataContext';
+import { paymentsAPI } from '../services/api';
 
 interface UserRevenue {
   user_id: string;
@@ -10,7 +10,7 @@ interface UserRevenue {
 }
 
 export const PaymentsPage = () => {
-  const { payments, students, addPayment } = useData();
+  const { payments, students, users, addPayment } = useData();
   const [userRevenue, setUserRevenue] = useState<UserRevenue[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -25,28 +25,41 @@ export const PaymentsPage = () => {
 
   const [showAllPayments, setShowAllPayments] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(0); // 0 = current week
   const exportDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchPayments();
-  }, []);
+    if (users.length > 0) {
+      fetchPayments();
+    }
+  }, [users]);
 
   const fetchPayments = async () => {
-    // Frontend-only: Data comes from shared context
-
-    // Set user revenue data
-    setUserRevenue([
-      {
-        user_id: '1',
-        full_name: 'McMills User',
-        totalRevenue: 125000.00
-      },
-      {
-        user_id: '2',
-        full_name: 'System Clerk',
-        totalRevenue: 61750.00
+    try {
+      // Fetch revenue stats from API
+      const stats = await paymentsAPI.getStats();
+      
+      // Transform by_user data to UserRevenue array
+      const revenueData: UserRevenue[] = [];
+      
+      // Get user details for each user_id in stats
+      for (const [userId, revenue] of Object.entries(stats.by_user || {})) {
+        const user = users.find(u => u.id === userId);
+        if (user) {
+          revenueData.push({
+            user_id: userId,
+            full_name: user.full_name,
+            totalRevenue: revenue as number
+          });
+        }
       }
-    ]);
+      
+      setUserRevenue(revenueData);
+    } catch (error) {
+      console.error('Error fetching payment stats:', error);
+      // Fallback to empty array on error
+      setUserRevenue([]);
+    }
 
     // Simulate loading delay
     setTimeout(() => {
@@ -98,8 +111,8 @@ export const PaymentsPage = () => {
       });
 
       const dayAmount = dayPayments.reduce((sum, p) => sum + p.amount, 0);
-      const dayCash = dayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
-      const dayMomo = dayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+      const dayCash = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'CASH').reduce((sum, p) => sum + p.amount, 0);
+      const dayMomo = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'MOMO').reduce((sum, p) => sum + p.amount, 0);
 
       dailyBreakdown.push({
         date: date.toLocaleDateString(),
@@ -124,8 +137,8 @@ export const PaymentsPage = () => {
       });
 
       const weekAmountData = weekPaymentsData.reduce((sum, p) => sum + p.amount, 0);
-      const weekCash = weekPaymentsData.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
-      const weekMomo = weekPaymentsData.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+      const weekCash = weekPaymentsData.filter(p => p.payment_method?.toUpperCase() === 'CASH').reduce((sum, p) => sum + p.amount, 0);
+      const weekMomo = weekPaymentsData.filter(p => p.payment_method?.toUpperCase() === 'MOMO').reduce((sum, p) => sum + p.amount, 0);
 
       weeklyBreakdown.push({
         weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
@@ -176,8 +189,8 @@ export const PaymentsPage = () => {
       `Today's Payments: ${todayPayments.length} transactions`,
       `Today's Revenue: GH₵ ${todayAmount.toLocaleString()}`,
       `Today's Average: GH₵ ${todayPayments.length > 0 ? Math.round(todayAmount / todayPayments.length).toLocaleString() : '0'}`,
-      `Today's Cash: GH₵ ${todayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}`,
-      `Today's MoMo: GH₵ ${todayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}`,
+      `Today's Cash: GH₵ ${todayPayments.filter(p => p.payment_method?.toUpperCase() === 'CASH').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}`,
+      `Today's MoMo: GH₵ ${todayPayments.filter(p => p.payment_method?.toUpperCase() === 'MOMO').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}`,
       '',
       '=== PAYMENT METHOD BREAKDOWN ===',
       `Cash: ${totalAmount > 0 ? Math.round((totalCash / totalAmount) * 100) : 0}% of total amount`,
@@ -281,8 +294,8 @@ export const PaymentsPage = () => {
       });
 
       const dayAmount = dayPayments.reduce((sum, p) => sum + p.amount, 0);
-      const dayCash = dayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
-      const dayMomo = dayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+      const dayCash = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'CASH').reduce((sum, p) => sum + p.amount, 0);
+      const dayMomo = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'MOMO').reduce((sum, p) => sum + p.amount, 0);
 
       dailyBreakdown.push({
         date: date.toLocaleDateString(),
@@ -307,8 +320,8 @@ export const PaymentsPage = () => {
       });
 
       const weekAmountData = weekPaymentsData.reduce((sum, p) => sum + p.amount, 0);
-      const weekCash = weekPaymentsData.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0);
-      const weekMomo = weekPaymentsData.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0);
+      const weekCash = weekPaymentsData.filter(p => p.payment_method?.toUpperCase() === 'CASH').reduce((sum, p) => sum + p.amount, 0);
+      const weekMomo = weekPaymentsData.filter(p => p.payment_method?.toUpperCase() === 'MOMO').reduce((sum, p) => sum + p.amount, 0);
 
       weeklyBreakdown.push({
         weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
@@ -499,11 +512,11 @@ export const PaymentsPage = () => {
             <div class="analytics-title">💰 Today's Payment Methods</div>
             <div class="stat-row">
               <span class="stat-label">Cash Today:</span>
-              <span class="stat-value">GH₵ ${todayPayments.filter(p => p.payment_method === 'cash').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</span>
+              <span class="stat-value">GH₵ ${todayPayments.filter(p => p.payment_method?.toUpperCase() === 'CASH').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Mobile Money Today:</span>
-              <span class="stat-value">GH₵ ${todayPayments.filter(p => p.payment_method === 'momo').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</span>
+              <span class="stat-value">GH₵ ${todayPayments.filter(p => p.payment_method?.toUpperCase() === 'MOMO').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</span>
             </div>
             <div class="stat-row">
               <span class="stat-label">Comparison to Week Avg:</span>
@@ -605,10 +618,26 @@ export const PaymentsPage = () => {
   };
 
   const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const cashPayments = payments.filter((p) => p.payment_method === 'cash');
-  const momoPayments = payments.filter((p) => p.payment_method === 'momo');
+  const cashPayments = payments.filter((p) => p.payment_method?.toUpperCase() === 'CASH');
+  const momoPayments = payments.filter((p) => p.payment_method?.toUpperCase() === 'MOMO');
+  const bankPayments = payments.filter((p) => p.payment_method?.toUpperCase() === 'BANK');
   const totalCash = cashPayments.reduce((sum, p) => sum + Number(p.amount), 0);
   const totalMomo = momoPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const totalBank = bankPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  // Calculate percentages based on transaction count
+  const totalTransactions = payments.length;
+  const cashPercentage = totalTransactions > 0 ? Math.round((cashPayments.length / totalTransactions) * 100) : 0;
+  const momoPercentage = totalTransactions > 0 ? Math.round((momoPayments.length / totalTransactions) * 100) : 0;
+  const bankPercentage = totalTransactions > 0 ? Math.round((bankPayments.length / totalTransactions) * 100) : 0;
+
+  // Determine most popular payment method
+  const paymentMethods = [
+    { name: 'Cash', amount: totalCash, count: cashPayments.length },
+    { name: 'Mobile Money', amount: totalMomo, count: momoPayments.length },
+    { name: 'Bank Transfer', amount: totalBank, count: bankPayments.length }
+  ];
+  const mostPopular = paymentMethods.reduce((max, method) => method.count > max.count ? method : max, paymentMethods[0]);
 
   if (loading) {
     return (
@@ -769,22 +798,22 @@ export const PaymentsPage = () => {
           <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">Payment Methods Distribution</h3>
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-              <span className="text-base text-blue-600 dark:text-blue-400">Cash Payments</span>
-              <span className="text-base font-bold text-blue-800 dark:text-blue-200">45%</span>
+              <span className="text-base text-blue-600 dark:text-blue-400">Cash Payments ({cashPayments.length} transactions)</span>
+              <span className="text-base font-bold text-blue-800 dark:text-blue-200">{cashPercentage}%</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <span className="text-base text-gray-600 dark:text-gray-400">Mobile Money</span>
-              <span className="text-base font-bold text-gray-800 dark:text-white">35%</span>
+              <span className="text-base text-gray-600 dark:text-gray-400">Mobile Money ({momoPayments.length} transactions)</span>
+              <span className="text-base font-bold text-gray-800 dark:text-white">{momoPercentage}%</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <span className="text-base text-gray-600 dark:text-gray-400">Bank Transfer</span>
-              <span className="text-base font-bold text-gray-800 dark:text-white">20%</span>
+              <span className="text-base text-gray-600 dark:text-gray-400">Bank Transfer ({bankPayments.length} transactions)</span>
+              <span className="text-base font-bold text-gray-800 dark:text-white">{bankPercentage}%</span>
             </div>
             <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />
                 <span className="text-base font-medium text-green-800 dark:text-green-300">
-                  Most popular payment method
+                  Most popular: {mostPopular.name} ({mostPopular.count} transactions)
                 </span>
               </div>
             </div>
@@ -794,8 +823,10 @@ export const PaymentsPage = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-center gap-8">
             <div className="relative w-64 h-64">
-              <svg viewBox="0 0 100 100" className="transform -rotate-90 animate-spin" style={{ animationDuration: '4s' }}>
-                {/* Cash - 45% */}
+              <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                {/* Calculate stroke-dasharray for each segment based on percentage */}
+                {/* Circumference = 2πr = 2π(40) ≈ 251 */}
+                {/* Cash segment */}
                 <circle
                   cx="50"
                   cy="50"
@@ -803,11 +834,11 @@ export const PaymentsPage = () => {
                   fill="none"
                   stroke="#6B7280"
                   strokeWidth="20"
-                  strokeDasharray="113 138"
+                  strokeDasharray={`${cashPercentage * 2.51} ${251 - cashPercentage * 2.51}`}
                   strokeDashoffset="0"
                   className="transition-all duration-300 hover:stroke-opacity-80"
                 />
-                {/* Mobile Money - 35% */}
+                {/* Mobile Money segment */}
                 <circle
                   cx="50"
                   cy="50"
@@ -815,11 +846,11 @@ export const PaymentsPage = () => {
                   fill="none"
                   stroke="#059669"
                   strokeWidth="20"
-                  strokeDasharray="88 163"
-                  strokeDashoffset="-113"
+                  strokeDasharray={`${momoPercentage * 2.51} ${251 - momoPercentage * 2.51}`}
+                  strokeDashoffset={`-${cashPercentage * 2.51}`}
                   className="transition-all duration-300 hover:stroke-opacity-80"
                 />
-                {/* Bank Transfer - 20% */}
+                {/* Bank Transfer segment */}
                 <circle
                   cx="50"
                   cy="50"
@@ -827,15 +858,15 @@ export const PaymentsPage = () => {
                   fill="none"
                   stroke="#D97706"
                   strokeWidth="20"
-                  strokeDasharray="50 201"
-                  strokeDashoffset="-201"
+                  strokeDasharray={`${bankPercentage * 2.51} ${251 - bankPercentage * 2.51}`}
+                  strokeDashoffset={`-${(cashPercentage + momoPercentage) * 2.51}`}
                   className="transition-all duration-300 hover:stroke-opacity-80"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-800 dark:text-white">100%</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-white">{payments.length}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Transactions</p>
                 </div>
               </div>
             </div>
@@ -847,7 +878,7 @@ export const PaymentsPage = () => {
                 </div>
                 <div>
                   <p className="text-base font-medium text-gray-800 dark:text-white">Cash Payments</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">45%</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{cashPercentage}% • GH₵ {totalCash.toLocaleString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -856,7 +887,7 @@ export const PaymentsPage = () => {
                 </div>
                 <div>
                   <p className="text-base font-medium text-gray-800 dark:text-white">Mobile Money</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">35%</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{momoPercentage}% • GH₵ {totalMomo.toLocaleString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -865,11 +896,283 @@ export const PaymentsPage = () => {
                 </div>
                 <div>
                   <p className="text-base font-medium text-gray-800 dark:text-white">Bank Transfer</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">20%</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{bankPercentage}% • GH₵ {totalBank.toLocaleString()}</p>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Daily Trends by Week */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-blue-600" />
+            Daily Payment Trends by Week
+          </h2>
+        </div>
+
+        {/* Week Selector */}
+        {(() => {
+          // Calculate all weeks since first payment
+          if (payments.length === 0) {
+            return (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                No payment data available
+              </div>
+            );
+          }
+
+          const paymentDates = payments.map(p => new Date(p.payment_date).getTime());
+          const firstPaymentDate = new Date(Math.min(...paymentDates));
+          const today = new Date();
+          
+          // Calculate the start of the first week (Monday)
+          const firstWeekStart = new Date(firstPaymentDate);
+          firstWeekStart.setDate(firstWeekStart.getDate() - firstWeekStart.getDay() + (firstWeekStart.getDay() === 0 ? -6 : 1));
+          firstWeekStart.setHours(0, 0, 0, 0);
+          
+          // Calculate number of weeks
+          const weeksDiff = Math.ceil((today.getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+          const weeks = [];
+          
+          for (let i = 0; i < weeksDiff; i++) {
+            const weekStart = new Date(firstWeekStart.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+            const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+            weekEnd.setHours(23, 59, 59, 999);
+            
+            const weekPayments = payments.filter(p => {
+              const paymentDate = new Date(p.payment_date);
+              return paymentDate >= weekStart && paymentDate <= weekEnd;
+            });
+            
+            const isCurrentWeek = today >= weekStart && today <= weekEnd;
+            
+            weeks.push({
+              index: i,
+              weekNumber: i + 1,
+              weekStart,
+              weekEnd,
+              paymentsCount: weekPayments.length,
+              isCurrentWeek
+            });
+          }
+          
+          // Create reversed copy to show most recent first, but keep original week numbers
+          const reversedWeeks = [...weeks].reverse().map((week, idx) => ({
+            ...week,
+            displayIndex: idx  // For selection purposes
+          }));
+          
+          // Adjust selected week index if needed
+          const validatedSelectedIndex = selectedWeekIndex >= reversedWeeks.length ? 0 : selectedWeekIndex;
+          
+          return (
+            <>
+              <div className="mb-4 flex flex-wrap gap-2">
+                {reversedWeeks.map((week, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedWeekIndex(idx)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      validatedSelectedIndex === idx
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : week.isCurrentWeek
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-2 border-blue-500'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Week {week.weekNumber}
+                    {week.isCurrentWeek && ' (Current)'}
+                    {week.paymentsCount > 0 && ` • ${week.paymentsCount} payments`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Daily breakdown for selected week */}
+              {(() => {
+                const selectedWeek = reversedWeeks[validatedSelectedIndex];
+                if (!selectedWeek) return null;
+                
+                const dailyData = [];
+                
+                for (let i = 0; i < 7; i++) {
+                  const date = new Date(selectedWeek.weekStart.getTime() + i * 24 * 60 * 60 * 1000);
+                  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+                  
+                  const dayPayments = payments.filter(p => {
+                    const paymentDate = new Date(p.payment_date);
+                    return paymentDate >= dayStart && paymentDate < dayEnd;
+                  });
+                  
+                  const dayCash = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'CASH').length;
+                  const dayMomo = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'MOMO').length;
+                  const dayBank = dayPayments.filter(p => p.payment_method?.toUpperCase() === 'BANK').length;
+                  const dayRevenue = dayPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+                  
+                  const isToday = date.toDateString() === today.toDateString();
+                  
+                  dailyData.push({
+                    date: date.toLocaleDateString(),
+                    dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                    payments: dayPayments.length,
+                    revenue: dayRevenue,
+                    cash: dayCash,
+                    momo: dayMomo,
+                    bank: dayBank,
+                    isToday
+                  });
+                }
+                
+                const weekTotal = dailyData.reduce((sum, day) => sum + day.revenue, 0);
+                const weekPayments = dailyData.reduce((sum, day) => sum + day.payments, 0);
+                
+                return (
+                  <div>
+                    <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                            Week {selectedWeek.weekNumber}: {selectedWeek.weekStart.toLocaleDateString()} - {selectedWeek.weekEnd.toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            {weekPayments} total payments • GH₵ {weekTotal.toLocaleString()} total revenue
+                          </p>
+                        </div>
+                        {selectedWeek.isCurrentWeek && (
+                          <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
+                            Current Week
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Day</th>
+                            <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Date</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Payments</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Revenue</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Cash</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">MoMo</th>
+                            <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Bank</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailyData.map((day, index) => (
+                            <tr 
+                              key={index} 
+                              className={`border-b border-gray-100 dark:border-gray-700 ${
+                                day.isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                              } hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors`}
+                            >
+                              <td className="py-3 px-4 text-sm font-medium text-gray-800 dark:text-white">
+                                {day.dayName}{day.isToday ? ' (Today)' : ''}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{day.date}</td>
+                              <td className="py-3 px-4 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                                {day.payments}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-right font-bold text-green-600 dark:text-green-400">
+                                GH₵ {day.revenue.toLocaleString()}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{day.cash}</td>
+                              <td className="py-3 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{day.momo}</td>
+                              <td className="py-3 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{day.bank}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          );
+        })()}
+      </div>
+
+      {/* Weekly Trends (Last 4 Weeks) */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-green-600" />
+          Weekly Payment Trends (Last 4 Weeks)
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Week Period</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Payments</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Revenue</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Cash</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">MoMo</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Bank</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Avg/Day</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const today = new Date();
+                const weeklyData = [];
+                
+                for (let i = 3; i >= 0; i--) {
+                  const weekEndDate = new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+                  const weekStartDate = new Date(weekEndDate.getTime() - 6 * 24 * 60 * 60 * 1000);
+                  
+                  const weekPayments = payments.filter(p => {
+                    const paymentDate = new Date(p.payment_date);
+                    return paymentDate >= weekStartDate && paymentDate <= weekEndDate;
+                  });
+                  
+                  const weekCash = weekPayments.filter(p => p.payment_method?.toUpperCase() === 'CASH').length;
+                  const weekMomo = weekPayments.filter(p => p.payment_method?.toUpperCase() === 'MOMO').length;
+                  const weekBank = weekPayments.filter(p => p.payment_method?.toUpperCase() === 'BANK').length;
+                  const weekRevenue = weekPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+                  
+                  weeklyData.push({
+                    weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
+                    payments: weekPayments.length,
+                    revenue: weekRevenue,
+                    cash: weekCash,
+                    momo: weekMomo,
+                    bank: weekBank,
+                    dailyAverage: Math.round((weekPayments.length / 7) * 10) / 10,
+                    isCurrentWeek: i === 0
+                  });
+                }
+                
+                return weeklyData.map((week, index) => (
+                  <tr 
+                    key={index} 
+                    className={`border-b border-gray-100 dark:border-gray-700 ${
+                      week.isCurrentWeek ? 'bg-green-50 dark:bg-green-900/20' : ''
+                    } hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors`}
+                  >
+                    <td className="py-3 px-4 text-sm font-medium text-gray-800 dark:text-white">
+                      Week { index + 1}: {week.weekRange}{week.isCurrentWeek ? ' (Current)' : ''}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right font-semibold text-gray-800 dark:text-white">
+                      {week.payments}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right font-bold text-green-600 dark:text-green-400">
+                      GH₵ {week.revenue.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{week.cash}</td>
+                    <td className="py-3 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{week.momo}</td>
+                    <td className="py-3 px-4 text-sm text-right text-gray-700 dark:text-gray-300">{week.bank}</td>
+                    <td className="py-3 px-4 text-sm text-right text-blue-600 dark:text-blue-400 font-medium">
+                      {week.dailyAverage}
+                    </td>
+                  </tr>
+                ));
+              })()}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1033,7 +1336,7 @@ export const PaymentsPage = () => {
                 />
               </div>
 
-              {newPayment.payment_method === 'momo' && (
+              {newPayment.payment_method?.toUpperCase() === 'MOMO' && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Operator
@@ -1043,7 +1346,7 @@ export const PaymentsPage = () => {
                     value={newPayment.operator}
                     onChange={(e) => setNewPayment({ ...newPayment, operator: e.target.value })}
                     className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
-                    placeholder="e.g., MTN, Vodafone"
+                    placeholder="e.g., MTN, Telecel"
                   />
                 </div>
               )}
@@ -1067,62 +1370,6 @@ export const PaymentsPage = () => {
           </div>
         </div>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">Daily Trends</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <span className="text-base text-gray-600 dark:text-gray-400">Monday (Mar 18)</span>
-              <span className="text-base font-bold text-gray-800 dark:text-white">GH₵ 450</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <span className="text-base text-gray-600 dark:text-gray-400">Tuesday (Mar 19)</span>
-              <span className="text-base font-bold text-gray-800 dark:text-white">GH₵ 680</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-              <span className="text-base text-blue-600 dark:text-blue-400">Wednesday (Mar 20) Today</span>
-              <span className="text-base font-bold text-blue-800 dark:text-blue-200">GH₵ 820</span>
-            </div>
-            <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <span className="text-base font-medium text-green-800 dark:text-green-300">
-                  20% increase from yesterday
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">Weekly Trends</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <span className="text-base text-gray-600 dark:text-gray-400">Week 1 (Mar 1-7)</span>
-              <span className="text-base font-bold text-gray-800 dark:text-white">GH₵ 2,150</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
-              <span className="text-base text-gray-600 dark:text-gray-400">Week 2 (Mar 8-14)</span>
-              <span className="text-base font-bold text-gray-800 dark:text-white">GH₵ 2,890</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-              <span className="text-base text-blue-600 dark:text-blue-400">Week 3 (Mar 15-21) Current</span>
-              <span className="text-base font-bold text-blue-800 dark:text-blue-200">GH₵ 3,410</span>
-            </div>
-            <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <span className="text-base font-medium text-green-800 dark:text-green-300">
-                  18% increase from last week
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

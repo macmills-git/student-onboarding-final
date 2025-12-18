@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2, Download, FileText, FileSpreadsheet, X } from 'lucide-react';
+import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { useData, Student } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const StudentsPage = () => {
   const { students, updateStudent, deleteStudent } = useData();
+  const { profile } = useAuth();
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,8 +13,6 @@ export const StudentsPage = () => {
   const [filterCourse, setFilterCourse] = useState('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Student | null>(null);
-  const [saving, setSaving] = useState(false);
   const [showAllStudents, setShowAllStudents] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
@@ -51,6 +51,11 @@ export const StudentsPage = () => {
   const filterAndSortStudents = () => {
     let filtered = [...students];
 
+    // Filter by user role: clerks only see their registered students, admins see all
+    if (profile && profile.role.toUpperCase() !== 'ADMIN') {
+      filtered = filtered.filter((s) => s.registered_by === profile.id);
+    }
+
     if (searchQuery) {
       filtered = filtered.filter(
         (s) =>
@@ -78,50 +83,20 @@ export const StudentsPage = () => {
     setFilteredStudents(filtered);
   };
 
-  const handleEditClick = (student: Student) => {
-    setSelectedStudent(student);
-    setEditForm({ ...student }); // Create a copy for editing
-    setIsEditing(true);
-  };
-
-  const handleSave = async () => {
-    if (!editForm) return;
-
-    setSaving(true);
+  const handleEdit = async (student: Student) => {
     try {
-      // Update the student in the context
       const updatedStudent = {
-        ...editForm,
+        ...student,
         updated_at: new Date().toISOString()
       };
 
-      updateStudent(editForm.id, updatedStudent);
-
-      // Close the modal
-      setSelectedStudent(null);
+      await updateStudent(student.id, updatedStudent);
+      alert(`Student ${student.name} updated successfully!`);
       setIsEditing(false);
-      setEditForm(null);
-
-      // Show success message
-      alert('Student updated successfully!');
-    } catch (error) {
-      console.error('Error updating student:', error);
-      alert('Failed to update student. Please try again.');
-    } finally {
-      setSaving(false);
+      setSelectedStudent(null);
+    } catch (error: any) {
+      alert(`Error updating student: ${error.message}`);
     }
-  };
-
-  const handleCancel = () => {
-    setSelectedStudent(null);
-    setIsEditing(false);
-    setEditForm(null);
-  };
-
-  const handleView = (student: Student) => {
-    setSelectedStudent(student);
-    setIsEditing(false);
-    setEditForm(null);
   };
 
   const handleDelete = async (studentId: string, studentName: string) => {
@@ -129,9 +104,12 @@ export const StudentsPage = () => {
       return;
     }
 
-    // Frontend-only: Remove student from shared context
-    deleteStudent(studentId);
-    alert(`Student ${studentName} deleted successfully!`);
+    try {
+      await deleteStudent(studentId);
+      alert(`Student ${studentName} deleted successfully!`);
+    } catch (error: any) {
+      alert(`Error deleting student: ${error.message}`);
+    }
   };
 
   const courses = Array.from(new Set(students.map((s) => s.course || 'Unknown')));
@@ -168,8 +146,8 @@ export const StudentsPage = () => {
 
       const dayMale = dayRegistrations.filter(s => s.gender === 'Male').length;
       const dayFemale = dayRegistrations.filter(s => s.gender === 'Female').length;
-      const dayRegular = dayRegistrations.filter(s => s.study_mode === 'regular').length;
-      const dayDistance = dayRegistrations.filter(s => s.study_mode === 'distance').length;
+      const dayRegular = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const dayDistance = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       dailyBreakdown.push({
         date: date.toLocaleDateString(),
@@ -196,8 +174,8 @@ export const StudentsPage = () => {
 
       const weekMale = weekRegs.filter(s => s.gender === 'Male').length;
       const weekFemale = weekRegs.filter(s => s.gender === 'Female').length;
-      const weekRegular = weekRegs.filter(s => s.study_mode === 'regular').length;
-      const weekDistance = weekRegs.filter(s => s.study_mode === 'distance').length;
+      const weekRegular = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const weekDistance = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       weeklyBreakdown.push({
         weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
@@ -216,8 +194,8 @@ export const StudentsPage = () => {
       const courseStudents = analyticsSource.filter(s => s.course === course);
       const courseMale = courseStudents.filter(s => s.gender === 'Male').length;
       const courseFemale = courseStudents.filter(s => s.gender === 'Female').length;
-      const courseRegular = courseStudents.filter(s => s.study_mode === 'regular').length;
-      const courseDistance = courseStudents.filter(s => s.study_mode === 'distance').length;
+      const courseRegular = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const courseDistance = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
       const courseRecentWeek = courseStudents.filter(s => new Date(s.created_at) >= weekStart).length;
 
       return {
@@ -302,6 +280,7 @@ export const StudentsPage = () => {
       'Level',
       'Study Mode',
       'Residential Status',
+      'Hall/Hostel',
       'Registration Date',
       'Registration Time',
       'Days Since Registration'
@@ -315,13 +294,14 @@ export const StudentsPage = () => {
         student.student_id,
         student.name,
         student.email,
-        student.gender,
-        student.nationality,
-        student.phone_number,
+        student.gender || '',
+        student.nationality || '',
+        student.phone,
         student.course,
         student.level,
         student.study_mode,
         student.residential_status,
+        student.hall || 'N/A',
         regDate.toLocaleDateString(),
         regDate.toLocaleTimeString(),
         daysSince
@@ -395,8 +375,8 @@ export const StudentsPage = () => {
 
       const dayMale = dayRegistrations.filter(s => s.gender === 'Male').length;
       const dayFemale = dayRegistrations.filter(s => s.gender === 'Female').length;
-      const dayRegular = dayRegistrations.filter(s => s.study_mode === 'regular').length;
-      const dayDistance = dayRegistrations.filter(s => s.study_mode === 'distance').length;
+      const dayRegular = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const dayDistance = dayRegistrations.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       dailyBreakdown.push({
         date: date.toLocaleDateString(),
@@ -423,8 +403,8 @@ export const StudentsPage = () => {
 
       const weekMale = weekRegs.filter(s => s.gender === 'Male').length;
       const weekFemale = weekRegs.filter(s => s.gender === 'Female').length;
-      const weekRegular = weekRegs.filter(s => s.study_mode === 'regular').length;
-      const weekDistance = weekRegs.filter(s => s.study_mode === 'distance').length;
+      const weekRegular = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const weekDistance = weekRegs.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       weeklyBreakdown.push({
         weekRange: `${weekStartDate.toLocaleDateString()} - ${weekEndDate.toLocaleDateString()}`,
@@ -443,8 +423,8 @@ export const StudentsPage = () => {
       const courseStudents = analyticsSource.filter(s => s.course === course);
       const courseMale = courseStudents.filter(s => s.gender === 'Male').length;
       const courseFemale = courseStudents.filter(s => s.gender === 'Female').length;
-      const courseRegular = courseStudents.filter(s => s.study_mode === 'regular').length;
-      const courseDistance = courseStudents.filter(s => s.study_mode === 'distance').length;
+      const courseRegular = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'REGULAR').length;
+      const courseDistance = courseStudents.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE').length;
 
       return {
         course,
@@ -676,6 +656,7 @@ export const StudentsPage = () => {
               <th>Gender</th>
               <th>Study Mode</th>
               <th>Residential</th>
+              <th>Hall/Hostel</th>
               <th>Registration Date</th>
             </tr>
           </thead>
@@ -687,9 +668,10 @@ export const StudentsPage = () => {
                 <td>${student.email}</td>
                 <td>${student.course}</td>
                 <td>${student.level}</td>
-                <td>${student.gender}</td>
+                <td>${student.gender || 'N/A'}</td>
                 <td>${student.study_mode}</td>
                 <td>${student.residential_status}</td>
+                <td>${student.hall || 'N/A'}</td>
                 <td>${new Date(student.created_at).toLocaleDateString()}</td>
               </tr>
             `).join('')}
@@ -724,11 +706,11 @@ export const StudentsPage = () => {
     totalStudents: dataSource?.length || 0,
     maleStudents: dataSource?.filter(s => s.gender === 'Male')?.length || 0,
     femaleStudents: dataSource?.filter(s => s.gender === 'Female')?.length || 0,
-    regularStudents: dataSource?.filter(s => s.study_mode === 'regular')?.length || 0,
-    distanceStudents: dataSource?.filter(s => s.study_mode === 'distance')?.length || 0,
-    cityStudents: dataSource?.filter(s => s.study_mode === 'city_campus')?.length || 0,
-    residentStudents: dataSource?.filter(s => s.residential_status === 'resident')?.length || 0,
-    nonResidentStudents: dataSource?.filter(s => s.residential_status === 'non_resident')?.length || 0,
+    regularStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'REGULAR')?.length || 0,
+    distanceStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE')?.length || 0,
+    cityStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'CITY_CAMPUS')?.length || 0,
+    residentStudents: dataSource?.filter(s => s.residential_status?.toUpperCase() === 'RESIDENT')?.length || 0,
+    nonResidentStudents: dataSource?.filter(s => s.residential_status?.toUpperCase() === 'NON_RESIDENT')?.length || 0,
     courseDistribution: courses.map(course => ({
       course,
       count: dataSource?.filter(s => s.course === course)?.length || 0
@@ -744,11 +726,11 @@ export const StudentsPage = () => {
     totalStudents: students?.length || 0,
     maleStudents: students?.filter(s => s.gender === 'Male')?.length || 0,
     femaleStudents: students?.filter(s => s.gender === 'Female')?.length || 0,
-    regularStudents: students?.filter(s => s.study_mode === 'regular')?.length || 0,
-    distanceStudents: students?.filter(s => s.study_mode === 'distance')?.length || 0,
-    cityStudents: students?.filter(s => s.study_mode === 'city_campus')?.length || 0,
-    residentStudents: students?.filter(s => s.residential_status === 'resident')?.length || 0,
-    nonResidentStudents: students?.filter(s => s.residential_status === 'non_resident')?.length || 0,
+    regularStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'REGULAR')?.length || 0,
+    distanceStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE')?.length || 0,
+    cityStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'CITY_CAMPUS')?.length || 0,
+    residentStudents: students?.filter(s => s.residential_status?.toUpperCase() === 'RESIDENT')?.length || 0,
+    nonResidentStudents: students?.filter(s => s.residential_status?.toUpperCase() === 'NON_RESIDENT')?.length || 0,
   } : null;
 
   if (loading) {
@@ -1099,20 +1081,23 @@ export const StudentsPage = () => {
                     <td className="py-3 px-4 text-base text-gray-800 dark:text-white">Level {student.level}</td>
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                        {student.study_mode === 'regular' ? 'Regular' : student.study_mode === 'distance' ? 'Distance' : 'City Campus'}
+                        {student.study_mode?.toUpperCase() === 'REGULAR' ? 'Regular' : student.study_mode?.toUpperCase() === 'DISTANCE' ? 'Distance' : 'City Campus'}
                       </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleView(student)}
+                          onClick={() => setSelectedStudent(student)}
                           className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-all flex items-center gap-1"
                         >
                           <Eye className="w-4 h-4" />
                           View
                         </button>
                         <button
-                          onClick={() => handleEditClick(student)}
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setIsEditing(true);
+                          }}
                           className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-all flex items-center gap-1"
                         >
                           <Edit className="w-4 h-4" />
@@ -1146,314 +1131,160 @@ export const StudentsPage = () => {
         )}
       </div>
 
-      {/* Student Details/Edit Modal */}
       {selectedStudent && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                  {isEditing ? 'Edit Student' : 'Student Details'}
-                </h2>
-                <button
-                  onClick={handleCancel}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                {isEditing ? 'Edit Student' : 'Student Details'}
+              </h2>
             </div>
 
-            {/* Content */}
-            <div className="p-6">
-              {isEditing && editForm ? (
-                /* Edit Form */
-                <div className="space-y-6">
-                  {/* Personal Information */}
+            <div className="p-6 space-y-4">
+              {isEditing ? (
+                <>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Personal Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Full Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={editForm.name}
-                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Student ID *
-                        </label>
-                        <input
-                          type="text"
-                          value={editForm.student_id}
-                          onChange={(e) => setEditForm({ ...editForm, student_id: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Email *
-                        </label>
-                        <input
-                          type="email"
-                          value={editForm.email}
-                          onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Phone Number *
-                        </label>
-                        <input
-                          type="tel"
-                          value={editForm.phone}
-                          onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        />
-                      </div>
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedStudent.name}
+                      onChange={(e) =>
+                        setSelectedStudent({ ...selectedStudent, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    />
                   </div>
-
-                  {/* Academic Information */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Academic Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Course *
-                        </label>
-                        <select
-                          value={editForm.course}
-                          onChange={(e) => setEditForm({ ...editForm, course: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        >
-                          <option value="Computer Science">Computer Science</option>
-                          <option value="Information Technology">Information Technology</option>
-                          <option value="Mathematical Science">Mathematical Science</option>
-                          <option value="Physical Science">Physical Science</option>
-                          <option value="Actuarial Science">Actuarial Science</option>
-                          <option value="Education">Education</option>
-                          <option value="Allied Health">Allied Health</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Level *
-                        </label>
-                        <select
-                          value={editForm.level}
-                          onChange={(e) => setEditForm({ ...editForm, level: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        >
-                          <option value="100">Level 100</option>
-                          <option value="200">Level 200</option>
-                          <option value="300">Level 300</option>
-                          <option value="400">Level 400</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Study Mode *
-                        </label>
-                        <select
-                          value={editForm.study_mode}
-                          onChange={(e) => setEditForm({ ...editForm, study_mode: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        >
-                          <option value="regular">Regular</option>
-                          <option value="distance">Distance</option>
-                          <option value="city_campus">City Campus</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Residential Status *
-                        </label>
-                        <select
-                          value={editForm.residential_status}
-                          onChange={(e) => setEditForm({ ...editForm, residential_status: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required
-                        >
-                          <option value="resident">Resident</option>
-                          <option value="non_resident">Non-Resident</option>
-                        </select>
-                      </div>
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={selectedStudent.email}
+                      onChange={(e) =>
+                        setSelectedStudent({ ...selectedStudent, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    />
                   </div>
-
-                  {/* Registration Info */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Registration Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Registered By
-                        </label>
-                        <input
-                          type="text"
-                          value={editForm.registered_by}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400"
-                          disabled
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Registration Date
-                        </label>
-                        <input
-                          type="text"
-                          value={new Date(editForm.created_at).toLocaleDateString()}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400"
-                          disabled
-                        />
-                      </div>
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={selectedStudent.phone}
+                      onChange={(e) =>
+                        setSelectedStudent({ ...selectedStudent, phone: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    />
                   </div>
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Residential Status
+                    </label>
+                    <select
+                      value={selectedStudent.residential_status}
+                      onChange={(e) =>
+                        setSelectedStudent({ 
+                          ...selectedStudent, 
+                          residential_status: e.target.value,
+                          hall: e.target.value === 'non_resident' ? undefined : selectedStudent.hall
+                        })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    >
+                      <option value="resident">Resident</option>
+                      <option value="non_resident">Non-Resident</option>
+                    </select>
+                  </div>
+                  {selectedStudent.residential_status?.toUpperCase() === 'RESIDENT' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Hall/Hostel *
+                      </label>
+                      <select
+                        value={selectedStudent.hall || ''}
+                        onChange={(e) =>
+                          setSelectedStudent({ ...selectedStudent, hall: e.target.value })
+                        }
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                        required
+                      >
+                        <option value="">Select Hall/Hostel</option>
+                        <option value="Mensah Sarbah Hall">Mensah Sarbah Hall</option>
+                        <option value="Legon Hall">Legon Hall</option>
+                        <option value="Volta Hall">Volta Hall</option>
+                        <option value="Commonwealth Hall">Commonwealth Hall</option>
+                        <option value="Akuafo Hall">Akuafo Hall</option>
+                        <option value="Pentagon Hostel">Pentagon Hostel</option>
+                        <option value="Evandy Hostel">Evandy Hostel</option>
+                        <option value="SSNIT Hostel">SSNIT Hostel</option>
+                      </select>
+                    </div>
+                  )}
+                </>
               ) : (
-                /* View Mode */
-                <div className="space-y-6">
-                  {/* Student Avatar and Basic Info */}
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                      {selectedStudent.name.charAt(0).toUpperCase()}
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { label: 'Student ID', value: selectedStudent.student_id },
+                    { label: 'Name', value: selectedStudent.name },
+                    { label: 'Email', value: selectedStudent.email },
+                    { label: 'Phone', value: selectedStudent.phone },
+                    { label: 'Gender', value: selectedStudent.gender },
+                    { label: 'Nationality', value: selectedStudent.nationality },
+                    { label: 'Course', value: selectedStudent.course },
+                    { label: 'Level', value: selectedStudent.level },
+                    { label: 'Study Mode', value: selectedStudent.study_mode },
+                    { label: 'Residential Status', value: selectedStudent.residential_status },
+                    ...(selectedStudent.residential_status?.toUpperCase() === 'RESIDENT' && selectedStudent.hall 
+                      ? [{ label: 'Hall/Hostel', value: selectedStudent.hall }] 
+                      : []),
+                  ].map((field) => (
+                    <div key={field.label}>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{field.label}</p>
+                      <p className="font-medium text-gray-800 dark:text-white">{field.value}</p>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white">{selectedStudent.name}</h3>
-                      <p className="text-gray-600 dark:text-gray-400">{selectedStudent.student_id}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{selectedStudent.email}</p>
-                    </div>
-                  </div>
-
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-semibold text-gray-800 dark:text-white mb-3">Personal Information</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Phone Number</p>
-                          <p className="font-medium text-gray-800 dark:text-white">{selectedStudent.phone}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-gray-800 dark:text-white mb-3">Academic Information</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Course</p>
-                          <p className="font-medium text-gray-800 dark:text-white">{selectedStudent.course}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Level</p>
-                          <p className="font-medium text-gray-800 dark:text-white">Level {selectedStudent.level}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Study Mode</p>
-                          <p className="font-medium text-gray-800 dark:text-white">
-                            {selectedStudent.study_mode === 'regular' ? 'Regular' :
-                              selectedStudent.study_mode === 'distance' ? 'Distance' : 'City Campus'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Residential Status</p>
-                          <p className="font-medium text-gray-800 dark:text-white">
-                            {selectedStudent.residential_status === 'resident' ? 'Resident' : 'Non-Resident'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-gray-800 dark:text-white mb-3">Registration Details</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Registered By</p>
-                          <p className="font-medium text-gray-800 dark:text-white">{selectedStudent.registered_by}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Registration Date</p>
-                          <p className="font-medium text-gray-800 dark:text-white">
-                            {new Date(selectedStudent.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        {selectedStudent.updated_at !== selectedStudent.created_at && (
-                          <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Last Updated</p>
-                            <p className="font-medium text-gray-800 dark:text-white">
-                              {new Date(selectedStudent.updated_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Footer */}
             <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 flex justify-end gap-3">
               {isEditing ? (
                 <>
                   <button
-                    onClick={handleCancel}
-                    disabled={saving}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setSelectedStudent(null);
+                    }}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center gap-2"
+                    onClick={() => handleEdit(selectedStudent)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
                   >
-                    {saving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Changes'
-                    )}
+                    Save Changes
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => handleEditClick(selectedStudent)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all flex items-center gap-2"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit Student
-                  </button>
-                </>
+                <button
+                  onClick={() => setSelectedStudent(null)}
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+                >
+                  Close
+                </button>
               )}
             </div>
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };

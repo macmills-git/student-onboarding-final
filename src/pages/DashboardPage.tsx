@@ -4,13 +4,24 @@ import {
   CreditCard, BarChart3, Activity, PieChart
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useData } from '../contexts/DataContext';
-// Frontend-only dashboard - no API imports needed
+import { dashboardAPI } from '../services/api';
 
 interface DashboardStats {
   totalStudents: number;
   totalRevenue: number;
   activeUsers: number;
+  todayRegistrations: number;
+  todayRevenue: number;
+  weeklyRegistrations: number;
+  staffOnline: number;
+}
+
+interface CourseDistribution {
+  course: string;
+  students: number;
+  percentage: number;
+  color: string;
+  rank: number;
 }
 
 interface UserAnalytics {
@@ -31,12 +42,16 @@ interface RecentActivity {
 }
 
 export const DashboardPage = () => {
-  const { students, payments } = useData();
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalRevenue: 0,
     activeUsers: 0,
+    todayRegistrations: 0,
+    todayRevenue: 0,
+    weeklyRegistrations: 0,
+    staffOnline: 0,
   });
+  const [courseDistribution, setCourseDistribution] = useState<CourseDistribution[]>([]);
   const [userAnalytics, setUserAnalytics] = useState<UserAnalytics[]>([]);
   const [recentStudents, setRecentStudents] = useState<RecentActivity[]>([]);
   const [recentPayments, setRecentPayments] = useState<RecentActivity[]>([]);
@@ -44,7 +59,6 @@ export const DashboardPage = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isChartVisible, setIsChartVisible] = useState(false);
   const [isStaffVisible, setIsStaffVisible] = useState(false);
-  const [showAllPayments, setShowAllPayments] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
   const staffRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +66,9 @@ export const DashboardPage = () => {
     fetchDashboardData();
     // Trigger animation after component mounts
     setTimeout(() => setIsVisible(true), 100);
-  }, [students, payments]); // Re-fetch when students or payments change
+
+
+  }, []);
 
   useEffect(() => {
     let hasTriggered = false;
@@ -133,71 +149,64 @@ export const DashboardPage = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    // Frontend-only: Use real data from context
+    try {
+      console.log('Fetching dashboard data...');
+      
+      // Fetch all dashboard data in parallel
+      const [statsResponse, staffResponse, activityResponse] = await Promise.all([
+        dashboardAPI.getStats(),
+        dashboardAPI.getStaffPerformance(),
+        dashboardAPI.getRecentActivity()
+      ]);
 
-    // Calculate total revenue from payments
-    const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+      console.log('Stats response:', statsResponse);
+      console.log('Staff response:', staffResponse);
+      console.log('Activity response:', activityResponse);
 
-    // Set dashboard stats using real data
-    setStats({
-      totalStudents: students.length,
-      totalRevenue: totalRevenue,
-      activeUsers: 3, // Keep static for demo
-    });
+      // Set dashboard stats
+      setStats({
+        totalStudents: statsResponse.data.totals.students,
+        totalRevenue: statsResponse.data.totals.revenue,
+        activeUsers: statsResponse.data.totals.active_users,
+        todayRegistrations: statsResponse.data.today.registrations,
+        todayRevenue: statsResponse.data.today.revenue,
+        weeklyRegistrations: statsResponse.data.weekly.registrations,
+        staffOnline: statsResponse.data.today.staff_online,
+      });
 
-    // Set user analytics (keep static for demo but could be calculated from real data)
-    setUserAnalytics([
-      {
-        user_id: '1',
-        full_name: 'McMills User',
-        registeredToday: 5,
-        revenueToday: 7500.00,
-        registeredThisWeek: 28,
-        totalRevenue: 125000.00
-      },
-      {
-        user_id: '2',
-        full_name: 'System Clerk',
-        registeredToday: 3,
-        revenueToday: 4500.00,
-        registeredThisWeek: 18,
-        totalRevenue: 61750.00
-      }
-    ]);
+      // Process course distribution
+      const courseData = statsResponse.data.distributions.by_course;
+      const courseColors = ['bg-cyan-600', 'bg-emerald-600', 'bg-blue-600', 'bg-teal-700', 'bg-indigo-600', 'bg-purple-600', 'bg-pink-600'];
+      const courseArray = Object.entries(courseData)
+        .map(([course, count]) => ({ course, count: count as number }))
+        .sort((a, b) => b.count - a.count);
+      
+      const maxStudents = courseArray[0]?.count || 1;
+      const distribution = courseArray.map((item, index) => ({
+        course: item.course,
+        students: item.count,
+        percentage: (item.count / statsResponse.data.totals.students) * 100,
+        color: courseColors[index % courseColors.length],
+        rank: index + 1
+      }));
+      setCourseDistribution(distribution);
 
-    // Get recent students from real data (sort by created_at and take the most recent)
-    const sortedStudents = [...students]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5); // Get top 5 most recent
+      // Set user analytics
+      setUserAnalytics(staffResponse.data);
 
-    const recentStudentsData: RecentActivity[] = sortedStudents.map(student => ({
-      id: student.id,
-      type: 'student' as const,
-      name: student.name,
-      timestamp: student.created_at
-    }));
+      // @ts-ignore - Set recent activity
+      setRecentStudents(activityResponse.data.recent_students);
+      // @ts-ignore
+      setRecentPayments(activityResponse.data.recent_payments);
 
-    setRecentStudents(recentStudentsData);
+      console.log('Dashboard data loaded successfully');
 
-    // Get recent payments from real data (sort by created_at and take the most recent)
-    const sortedPayments = [...payments]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5); // Get top 5 most recent
-
-    const recentPaymentsData: RecentActivity[] = sortedPayments.map(payment => ({
-      id: payment.id,
-      type: 'payment' as const,
-      name: payment.student_name,
-      amount: payment.amount,
-      timestamp: payment.created_at
-    }));
-
-    setRecentPayments(recentPaymentsData);
-
-    // Simulate loading delay for better UX
-    setTimeout(() => {
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      alert('Failed to load dashboard data. Please check if you are logged in and the backend is running.');
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   if (loading) {
@@ -237,7 +246,7 @@ export const DashboardPage = () => {
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
             <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
-              {userAnalytics.reduce((sum, user) => sum + user.registeredToday, 0)}
+              {stats.todayRegistrations}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Registrations</p>
           </div>
@@ -249,7 +258,7 @@ export const DashboardPage = () => {
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Today</span>
             </div>
             <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
-              GH₵ {userAnalytics.reduce((sum, user) => sum + user.revenueToday, 0).toLocaleString()}
+              GH₵ {stats.todayRevenue.toLocaleString()}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
           </div>
@@ -261,7 +270,7 @@ export const DashboardPage = () => {
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Week</span>
             </div>
             <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">
-              {userAnalytics.reduce((sum, user) => sum + user.registeredThisWeek, 0)}
+              {stats.weeklyRegistrations}
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Weekly Total</p>
           </div>
@@ -272,7 +281,7 @@ export const DashboardPage = () => {
               </div>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Now</span>
             </div>
-            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">{stats.activeUsers}</p>
+            <p className="text-xl md:text-[1.7rem] font-normal text-gray-800 dark:text-white mb-1">{stats.staffOnline}</p>
             <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Staff Online</p>
           </div>
         </div>
@@ -295,15 +304,7 @@ export const DashboardPage = () => {
         <div className="space-y-4 md:space-y-0">
           {/* Mobile View - Card Layout */}
           <div className="md:hidden space-y-4">
-            {[
-              { course: 'Computer Science', students: 298, percentage: 23.9, color: 'bg-cyan-600', rank: 1 },
-              { course: 'Information Technology', students: 245, percentage: 19.6, color: 'bg-emerald-600', rank: 2 },
-              { course: 'Mathematical Science', students: 187, percentage: 15.0, color: 'bg-blue-600', rank: 3 },
-              { course: 'Physical Science', students: 156, percentage: 12.5, color: 'bg-cyan-600', rank: 4 },
-              { course: 'Actuarial Science', students: 142, percentage: 11.4, color: 'bg-teal-700', rank: 5 },
-              { course: 'Education', students: 124, percentage: 9.9, color: 'bg-indigo-600', rank: 6 },
-              { course: 'Allied Health', students: 95, percentage: 7.6, color: 'bg-cyan-600', rank: 7 }
-            ].map((item) => (
+            {courseDistribution.map((item) => (
               <div key={item.course} className="bg-gray-100 dark:bg-gray-700/30 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -320,10 +321,10 @@ export const DashboardPage = () => {
                 <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
                   <div
                     className={`${item.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end pr-2`}
-                    style={{ width: isChartVisible ? `${(item.students / 298) * 100}%` : '0%' }}
+                    style={{ width: isChartVisible ? `${(item.students / (courseDistribution[0]?.students || 1)) * 100}%` : '0%' }}
                   >
                     {isChartVisible && (
-                      <span className="text-sm font-bold text-white animate-fade-in">{item.percentage}%</span>
+                      <span className="text-sm font-bold text-white animate-fade-in">{item.percentage.toFixed(1)}%</span>
                     )}
                   </div>
                 </div>
@@ -332,7 +333,7 @@ export const DashboardPage = () => {
             <div className="bg-gray-100 dark:bg-gray-700/30 rounded-lg p-4 border-2 border-gray-300 dark:border-gray-600">
               <div className="flex items-center justify-between">
                 <span className="text-base font-bold text-gray-800 dark:text-white">Total Enrollment</span>
-                <span className="text-xl font-extrabold text-gray-800 dark:text-white">{students.length.toLocaleString()}</span>
+                <span className="text-xl font-extrabold text-gray-800 dark:text-white">{stats.totalStudents.toLocaleString()}</span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">7 Programs</p>
             </div>
@@ -356,15 +357,7 @@ export const DashboardPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { course: 'Computer Science', students: 298, percentage: 23.9, color: 'bg-cyan-600', rank: 1 },
-                  { course: 'Information Technology', students: 245, percentage: 19.6, color: 'bg-emerald-600', rank: 2 },
-                  { course: 'Mathematical Science', students: 187, percentage: 15.0, color: 'bg-blue-600', rank: 3 },
-                  { course: 'Physical Science', students: 156, percentage: 12.5, color: 'bg-cyan-600', rank: 4 },
-                  { course: 'Actuarial Science', students: 142, percentage: 11.4, color: 'bg-teal-700', rank: 5 },
-                  { course: 'Education', students: 124, percentage: 9.9, color: 'bg-indigo-600', rank: 6 },
-                  { course: 'Allied Health', students: 95, percentage: 7.6, color: 'bg-cyan-600', rank: 7 }
-                ].map((item, index) => (
+                {courseDistribution.map((item, index) => (
                   <tr
                     key={item.course}
                     className={`border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/30 transition-colors ${index === 0 ? 'bg-gray-50 dark:bg-gray-800/20' : ''}`}
@@ -389,10 +382,10 @@ export const DashboardPage = () => {
                           <div className="w-full h-8 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
                             <div
                               className={`${item.color} h-full transition-all duration-[1500ms] ease-out flex items-center justify-end pr-2`}
-                              style={{ width: isChartVisible ? `${(item.students / 298) * 100}%` : '0%' }}
+                              style={{ width: isChartVisible ? `${(item.students / (courseDistribution[0]?.students || 1)) * 100}%` : '0%' }}
                             >
                               {isChartVisible && (
-                                <span className="text-sm font-bold text-white animate-fade-in">{item.percentage}%</span>
+                                <span className="text-sm font-bold text-white animate-fade-in">{item.percentage.toFixed(1)}%</span>
                               )}
                             </div>
                           </div>
@@ -404,8 +397,8 @@ export const DashboardPage = () => {
                 <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700/30 font-bold">
                   <td className="py-4 px-4"></td>
                   <td className="py-4 px-4 text-base font-bold text-gray-800 dark:text-white">Total Enrollment</td>
-                  <td className="py-4 px-4 text-center text-xl font-extrabold text-gray-800 dark:text-white">{students.length.toLocaleString()}</td>
-                  <td className="py-4 px-4 text-base text-gray-600 dark:text-gray-400">7 Programs</td>
+                  <td className="py-4 px-4 text-center text-xl font-extrabold text-gray-800 dark:text-white">{stats.totalStudents.toLocaleString()}</td>
+                  <td className="py-4 px-4 text-base text-gray-600 dark:text-gray-400">{courseDistribution.length} Programs</td>
                 </tr>
               </tbody>
             </table>
@@ -587,30 +580,24 @@ export const DashboardPage = () => {
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Recent Students</h2>
             </div>
             <div className="space-y-2">
-              {recentStudents.length > 0 ? (
-                recentStudents.slice(0, 3).map((student) => (
-                  <div
-                    key={student.id}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {student.name.charAt(0)}
-                      </div>
-                      <span className="text-sm font-medium text-gray-800 dark:text-white">
-                        {student.name}
-                      </span>
+              {recentStudents.slice(0, 3).map((student) => (
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {student.name.charAt(0)}
                     </div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(student.timestamp).toLocaleTimeString()}
+                    <span className="text-sm font-medium text-gray-800 dark:text-white">
+                      {student.name}
                     </span>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No recent students</p>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(student.timestamp).toLocaleTimeString()}
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
             <div className="mt-4 text-center">
               <Link
@@ -627,56 +614,37 @@ export const DashboardPage = () => {
               <CreditCard className="w-5 h-5 text-blue-500" />
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">Recent Payments</h2>
             </div>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {recentPayments.length > 0 ? (
-                (showAllPayments ? recentPayments : recentPayments.slice(0, 2)).map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                        {payment.name.charAt(0)}
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-800 dark:text-white block">
-                          {payment.name}
-                        </span>
-                        <span className="text-sm text-green-600 dark:text-green-400 font-bold">
-                          GH₵ {payment.amount?.toLocaleString()}
-                        </span>
-                      </div>
+            <div className="space-y-2">
+              {recentPayments.slice(0, 2).map((payment) => (
+                <div
+                  key={payment.id}
+                  className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-900/50 rounded"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {payment.name.charAt(0)}
                     </div>
-                    <div className="text-right">
-                      <span className="text-sm text-gray-500 dark:text-gray-400 block">
-                        {new Date(payment.timestamp).toLocaleTimeString()}
+                    <div>
+                      <span className="text-sm font-medium text-gray-800 dark:text-white block">
+                        {payment.name}
                       </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        {new Date(payment.timestamp).toLocaleDateString()}
+                      <span className="text-sm text-green-600 dark:text-green-400 font-bold">
+                        GH₵ {payment.amount?.toLocaleString()}
                       </span>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No recent payments</p>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {new Date(payment.timestamp).toLocaleTimeString()}
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
-            <div className="mt-4 flex items-center justify-between">
-              {recentPayments.length > 2 && (
-                <button
-                  onClick={() => setShowAllPayments(!showAllPayments)}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
-                >
-                  {showAllPayments ? 'View Less' : `View More (${recentPayments.length - 2} more)`}
-                </button>
-              )}
+            <div className="mt-4 text-center">
               <Link
                 to="/payments"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
+                className="text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
               >
-                All Payments →
+                View More Payments →
               </Link>
             </div>
           </div>

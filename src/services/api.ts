@@ -3,7 +3,7 @@
  * Handles all HTTP requests to the FastAPI backend
  */
 
-const API_BASE_URL = 'https://compssa-onboarding-backend.onrender.com/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 // Token management
 export const getToken = (): string | null => {
@@ -121,7 +121,9 @@ export const studentsAPI = {
 
   create: async (studentData: {
     student_id: string;
-    name: string;
+    surname: string;
+    first_name: string;
+    other_names?: string;
     email: string;
     phone: string;
     gender?: string;
@@ -324,5 +326,45 @@ export const dashboardAPI = {
         }>;
       };
     }>('/dashboard/recent-activity');
+  },
+
+  getUserActivities: async (userId: string) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        user: {
+          id: string;
+          username: string;
+          full_name: string;
+          role: string;
+          created_at: string;
+        };
+        summary: {
+          total_students_registered: number;
+          total_payments_recorded: number;
+          total_revenue: number;
+          total_activities: number;
+          first_activity: string | null;
+          last_activity: string | null;
+        };
+        activities: Array<{
+          id: string;
+          type: 'student_registration' | 'payment_record';
+          student_id?: string;
+          student_name: string;
+          email?: string;
+          course?: string;
+          level?: string;
+          study_mode?: string;
+          amount?: number;
+          payment_method?: string;
+          reference_id?: string;
+          timestamp: string;
+          date: string;
+          time: string;
+        }>;
+        activities_by_date: Record<string, Array<any>>;
+      };
+    }>(`/dashboard/user-activities/${userId}`);
   },
 };

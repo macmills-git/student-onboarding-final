@@ -1346,7 +1346,7 @@ export const PaymentsPage = () => {
                     value={newPayment.operator}
                     onChange={(e) => setNewPayment({ ...newPayment, operator: e.target.value })}
                     className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-white"
-                    placeholder="e.g., MTN, Vodafone"
+                    placeholder="e.g., MTN, Telecel"
                   />
                 </div>
               )}

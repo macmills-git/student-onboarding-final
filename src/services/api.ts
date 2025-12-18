@@ -3,7 +3,7 @@
  * Handles all HTTP requests to the FastAPI backend
  */
 
-const API_BASE_URL = 'https://compssa-onboarding-backend.onrender.com';
+const API_BASE_URL = 'https://compssa-onboarding-backend.onrender.com/api';
 
 // Token management
 export const getToken = (): string | null => {

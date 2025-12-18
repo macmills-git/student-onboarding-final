@@ -1,5 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp, Clock, DollarSign, Users as UsersIcon, Calendar, TrendingUp } from 'lucide-react';
 import { usersAPI, dashboardAPI } from '../services/api';
 
 interface User {
@@ -23,6 +23,43 @@ interface UserPerformance {
   totalRevenue: number;
 }
 
+interface UserActivity {
+  id: string;
+  type: 'student_registration' | 'payment_record';
+  student_id?: string;
+  student_name: string;
+  email?: string;
+  course?: string;
+  level?: string;
+  study_mode?: string;
+  amount?: number;
+  payment_method?: string;
+  reference_id?: string;
+  timestamp: string;
+  date: string;
+  time: string;
+}
+
+interface UserActivitiesData {
+  user: {
+    id: string;
+    username: string;
+    full_name: string;
+    role: string;
+    created_at: string;
+  };
+  summary: {
+    total_students_registered: number;
+    total_payments_recorded: number;
+    total_revenue: number;
+    total_activities: number;
+    first_activity: string | null;
+    last_activity: string | null;
+  };
+  activities: UserActivity[];
+  activities_by_date: Record<string, UserActivity[]>;
+}
+
 export const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [userPerformance, setUserPerformance] = useState<UserPerformance[]>([]);
@@ -31,6 +68,9 @@ export const UsersPage = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [isPerformanceVisible, setIsPerformanceVisible] = useState(false);
+  const [showActivitiesModal, setShowActivitiesModal] = useState(false);
+  const [selectedUserActivities, setSelectedUserActivities] = useState<UserActivitiesData | null>(null);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
   const [newUser, setNewUser] = useState({
     username: '',
@@ -181,6 +221,39 @@ export const UsersPage = () => {
     }
   };
 
+  const fetchUserActivities = async (userId: string) => {
+    try {
+      setLoadingActivities(true);
+      setShowActivitiesModal(true);
+      const response = await dashboardAPI.getUserActivities(userId);
+      if (response.success) {
+        setSelectedUserActivities(response.data);
+      } else {
+        alert('Failed to load user activities.');
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch user activities:', error);
+      alert('Failed to load user activities. Please try again.');
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
+  const closeActivitiesModal = () => {
+    setShowActivitiesModal(false);
+    setSelectedUserActivities(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -298,6 +371,14 @@ export const UsersPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 md:gap-2 w-full md:w-auto">
+                    <button
+                      onClick={() => fetchUserActivities(user.id)}
+                      className="flex-1 md:flex-none px-2 md:px-3 py-1.5 text-xs md:text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all flex items-center justify-center gap-1 border border-blue-200 dark:border-blue-800"
+                      title="View all activities"
+                    >
+                      <Activity className="w-3 h-3 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">Activities</span>
+                    </button>
                     <button
                       onClick={() => setEditingUser(user)}
                       className="flex-1 md:flex-none px-2 md:px-3 py-1.5 text-xs md:text-sm bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 rounded hover:bg-slate-100 dark:hover:bg-slate-900/30 transition-all flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-800"
@@ -719,6 +800,199 @@ export const UsersPage = () => {
           </div>
         </div>
       </div>
+
+      {/* User Activities Modal */}
+      {showActivitiesModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                    <Activity className="w-6 h-6" />
+                    User Activity History
+                  </h2>
+                  {selectedUserActivities && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {selectedUserActivities.user.full_name} (@{selectedUserActivities.user.username})
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={closeActivitiesModal}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingActivities ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : selectedUserActivities ? (
+                <div className="space-y-6">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <UsersIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Students Registered</span>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {selectedUserActivities.summary.total_students_registered}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payments Recorded</span>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {selectedUserActivities.summary.total_payments_recorded}
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Revenue</span>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        GH₵ {selectedUserActivities.summary.total_revenue.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Activity className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Activities</span>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {selectedUserActivities.summary.total_activities}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Activity Period */}
+                  {selectedUserActivities.summary.first_activity && (
+                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Activity Period</span>
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {formatDate(selectedUserActivities.summary.first_activity)} - {formatDate(selectedUserActivities.summary.last_activity || '')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Activities Timeline */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Activity Timeline
+                    </h3>
+                    
+                    {selectedUserActivities.activities.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        No activities recorded yet
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {Object.entries(selectedUserActivities.activities_by_date)
+                          .reverse()
+                          .map(([date, activities]) => (
+                            <div key={date} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                              {/* Date Header */}
+                              <div className="bg-gray-100 dark:bg-gray-900 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                  {formatDate(date)} ({activities.length} {activities.length === 1 ? 'activity' : 'activities'})
+                                </h4>
+                              </div>
+                              {/* Activities for this date */}
+                              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {activities.map((activity: UserActivity) => (
+                                  <div key={activity.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                                    <div className="flex items-start gap-3">
+                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                        activity.type === 'student_registration'
+                                          ? 'bg-blue-100 dark:bg-blue-900/30'
+                                          : 'bg-green-100 dark:bg-green-900/30'
+                                      }`}>
+                                        {activity.type === 'student_registration' ? (
+                                          <UsersIcon className={`w-5 h-5 ${
+                                            activity.type === 'student_registration'
+                                              ? 'text-blue-600 dark:text-blue-400'
+                                              : 'text-green-600 dark:text-green-400'
+                                          }`} />
+                                        ) : (
+                                          <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <h5 className="text-sm font-semibold text-gray-800 dark:text-white">
+                                            {activity.type === 'student_registration' ? 'Student Registration' : 'Payment Record'}
+                                          </h5>
+                                          <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            {activity.time}
+                                          </span>
+                                        </div>
+                                        <div className="mt-1 space-y-1">
+                                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                                            <span className="font-medium">Student:</span> {activity.student_name}
+                                            {activity.student_id && <span className="text-gray-500 dark:text-gray-400"> ({activity.student_id})</span>}
+                                          </p>
+                                          {activity.type === 'student_registration' ? (
+                                            <>
+                                              {activity.email && (
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                  <span className="font-medium">Email:</span> {activity.email}
+                                                </p>
+                                              )}
+                                              {activity.course && (
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                  <span className="font-medium">Course:</span> {activity.course} • Level {activity.level} • {activity.study_mode}
+                                                </p>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                                Amount: GH₵ {activity.amount?.toLocaleString()}
+                                              </p>
+                                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                                <span className="font-medium">Method:</span> {activity.payment_method?.toUpperCase()} • 
+                                                <span className="font-medium"> Reference:</span> {activity.reference_id}
+                                              </p>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  No activities found
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent, useRef } from 'react';
 import { DollarSign, CreditCard, Smartphone, Plus, X, TrendingUp, Download, FileText, FileSpreadsheet, ChevronDown } from 'lucide-react';
-import { useData, Payment } from '../contexts/DataContext';
+import { useData, Payment, getStudentFullName } from '../contexts/DataContext';
 import { paymentsAPI } from '../services/api';
 
 interface UserRevenue {
@@ -592,7 +592,7 @@ export const PaymentsPage = () => {
     const newPaymentRecord: Payment = {
       id: String(Date.now()),
       student_id: newPayment.student_id,
-      student_name: selectedStudent.name,
+      student_name: getStudentFullName(selectedStudent),
       amount: parseFloat(newPayment.amount),
       payment_method: newPayment.payment_method,
       reference_id: newPayment.reference_id,
@@ -605,7 +605,7 @@ export const PaymentsPage = () => {
     // Add to shared context
     addPayment(newPaymentRecord);
 
-    alert(`Payment of GH₵${newPayment.amount} recorded successfully for ${selectedStudent.name}!`);
+    alert(`Payment of GH₵${newPayment.amount} recorded successfully for ${getStudentFullName(selectedStudent)}!`);
 
     setShowAddModal(false);
     setNewPayment({
@@ -1287,7 +1287,7 @@ export const PaymentsPage = () => {
                   <option value="">Select Student</option>
                   {students.map((student) => (
                     <option key={student.id} value={student.id}>
-                      {student.name} ({student.student_id})
+                      {getStudentFullName(student)} ({student.student_id})
                     </option>
                   ))}
                 </select>

@@ -6,7 +6,9 @@ import { useAuth } from './AuthContext';
 export interface Student {
     id: string;
     student_id: string;
-    name: string;
+    surname: string;
+    first_name: string;
+    other_names?: string;
     email: string;
     phone: string;
     gender?: string;
@@ -20,6 +22,15 @@ export interface Student {
     created_at: string;
     updated_at: string;
 }
+
+// Helper function to get full name from student
+export const getStudentFullName = (student: Student): string => {
+    const parts = [student.surname, student.first_name];
+    if (student.other_names) {
+        parts.push(student.other_names);
+    }
+    return parts.join(' ');
+};
 
 export interface Payment {
     id: string;

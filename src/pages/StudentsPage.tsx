@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Search, Filter, Eye, Edit, ChevronDown, Users, Trash2, Download, FileText, FileSpreadsheet } from 'lucide-react';
-import { useData, Student } from '../contexts/DataContext';
+import { useData, Student, getStudentFullName } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 
 export const StudentsPage = () => {
@@ -13,10 +13,12 @@ export const StudentsPage = () => {
   const [filterCourse, setFilterCourse] = useState('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [showAllStudents, setShowAllStudents] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
 
   useEffect(() => {
     fetchStudents();
@@ -59,7 +61,7 @@ export const StudentsPage = () => {
     if (searchQuery) {
       filtered = filtered.filter(
         (s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          getStudentFullName(s).toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.student_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.email.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -73,7 +75,7 @@ export const StudentsPage = () => {
       if (sortBy === 'date') {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       } else if (sortBy === 'name') {
-        return a.name.localeCompare(b.name);
+        return getStudentFullName(a).localeCompare(getStudentFullName(b));
       } else if (sortBy === 'course') {
         return a.course.localeCompare(b.course);
       }
@@ -81,6 +83,8 @@ export const StudentsPage = () => {
     });
 
     setFilteredStudents(filtered);
+    // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const handleEdit = async (student: Student) => {
@@ -91,7 +95,7 @@ export const StudentsPage = () => {
       };
 
       await updateStudent(student.id, updatedStudent);
-      alert(`Student ${student.name} updated successfully!`);
+      alert(`Student ${getStudentFullName(student)} updated successfully!`);
       setIsEditing(false);
       setSelectedStudent(null);
     } catch (error: any) {
@@ -292,7 +296,7 @@ export const StudentsPage = () => {
 
       return [
         student.student_id,
-        student.name,
+        getStudentFullName(student),
         student.email,
         student.gender || '',
         student.nationality || '',
@@ -664,7 +668,7 @@ export const StudentsPage = () => {
             ${filteredStudents.map(student => `
               <tr>
                 <td>${student.student_id}</td>
-                <td>${student.name}</td>
+                <td>${getStudentFullName(student)}</td>
                 <td>${student.email}</td>
                 <td>${student.course}</td>
                 <td>${student.level}</td>
@@ -1047,20 +1051,23 @@ export const StudentsPage = () => {
             <p className="text-base text-gray-500 dark:text-gray-400">No students found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Student</th>
-                  <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Student ID</th>
-                  <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Course</th>
-                  <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Level</th>
-                  <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Study Mode</th>
-                  <th className="text-right py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(showAllStudents ? filteredStudents : filteredStudents.slice(0, 10)).map((student) => (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Student</th>
+                    <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Student ID</th>
+                    <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Course</th>
+                    <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Level</th>
+                    <th className="text-left py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Study Mode</th>
+                    <th className="text-right py-3 px-4 text-base font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents
+                    .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                    .map((student) => (
                   <tr
                     key={student.id}
                     className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
@@ -1068,10 +1075,10 @@ export const StudentsPage = () => {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-base">
-                          {student.name.charAt(0).toUpperCase()}
+                          {student.surname.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-base font-semibold text-gray-800 dark:text-white">{student.name}</p>
+                          <p className="text-base font-semibold text-gray-800 dark:text-white">{getStudentFullName(student)}</p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">{student.email}</p>
                         </div>
                       </div>
@@ -1104,7 +1111,7 @@ export const StudentsPage = () => {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(student.id, student.name)}
+                          onClick={() => handleDelete(student.id, getStudentFullName(student))}
                           className="px-3 py-1.5 text-sm bg-transparent text-rose-700 dark:text-rose-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-all flex items-center gap-1 border border-gray-300 dark:border-gray-600"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1117,17 +1124,61 @@ export const StudentsPage = () => {
               </tbody>
             </table>
           </div>
-        )}
 
-        {filteredStudents.length > 10 && (
-          <div className="text-center pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setShowAllStudents(!showAllStudents)}
-              className="text-base text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
-            >
-              {showAllStudents ? 'View Less' : `View More (${filteredStudents.length - 10} more students)`}
-            </button>
-          </div>
+          {/* Pagination Controls */}
+          {filteredStudents.length > pageSize && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Showing {Math.min((currentPage - 1) * pageSize + 1, filteredStudents.length)} to{' '}
+                {Math.min(currentPage * pageSize, filteredStudents.length)} of {filteredStudents.length} students
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.ceil(filteredStudents.length / pageSize) }, (_, i) => i + 1)
+                    .filter(page => {
+                      const totalPages = Math.ceil(filteredStudents.length / pageSize);
+                      // Show first page, last page, current page, and adjacent pages
+                      return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                    })
+                    .map((page, index, array) => (
+                      <div key={page} className="flex items-center">
+                        {index > 0 && array[index - 1] !== page - 1 && (
+                          <span className="px-2 text-gray-400">...</span>
+                        )}
+                        <button
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-500 text-white'
+                              : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      </div>
+                    ))}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(Math.ceil(filteredStudents.length / pageSize), currentPage + 1))}
+                  disabled={currentPage === Math.ceil(filteredStudents.length / pageSize)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
@@ -1145,13 +1196,39 @@ export const StudentsPage = () => {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Full Name
+                      Surname
                     </label>
                     <input
                       type="text"
-                      value={selectedStudent.name}
+                      value={selectedStudent.surname}
                       onChange={(e) =>
-                        setSelectedStudent({ ...selectedStudent, name: e.target.value })
+                        setSelectedStudent({ ...selectedStudent, surname: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedStudent.first_name}
+                      onChange={(e) =>
+                        setSelectedStudent({ ...selectedStudent, first_name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Other Names (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedStudent.other_names || ''}
+                      onChange={(e) =>
+                        setSelectedStudent({ ...selectedStudent, other_names: e.target.value })
                       }
                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white"
                     />
@@ -1231,7 +1308,7 @@ export const StudentsPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { label: 'Student ID', value: selectedStudent.student_id },
-                    { label: 'Name', value: selectedStudent.name },
+                    { label: 'Name', value: getStudentFullName(selectedStudent) },
                     { label: 'Email', value: selectedStudent.email },
                     { label: 'Phone', value: selectedStudent.phone },
                     { label: 'Gender', value: selectedStudent.gender },

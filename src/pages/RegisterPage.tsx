@@ -1,10 +1,14 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Check, User, GraduationCap, DollarSign, FileText, Activity, Phone, Mail, CreditCard, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useData, Student, Payment } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
+import { countries } from '../data/countries';
 
 interface PersonalDetails {
-  name: string;
+  surname: string;
+  first_name: string;
+  other_name: string;
   email: string;
   student_id: string;
   gender: string;
@@ -23,13 +27,16 @@ interface AcademicDetails {
 interface FinancialDetails {
   amount: string;
   reference_id: string;
-  payment_method: 'cash' | 'momo';
-  operator: string;
+  payment_method: 'cash' | 'momo' | 'bank';
+  mobile_number: string;
+  bank_name: string;
+  operator?: string;
 }
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
   const { students, addStudent, addPayment } = useData();
+  const { profile } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,18 +44,21 @@ export const RegisterPage = () => {
   const [registeredStudentName, setRegisteredStudentName] = useState('');
   const [registeredStudentId, setRegisteredStudentId] = useState('');
 
+
   const [personalDetails, setPersonalDetails] = useState<PersonalDetails>({
-    name: '',
+    surname: '',
+    first_name: '',
+    other_name: '',
     email: '',
     student_id: '',
-    gender: '',
-    nationality: '',
+    gender: 'Male',
+    nationality: 'Ghana',
     phone_number: '',
   });
 
   const [academicDetails, setAcademicDetails] = useState<AcademicDetails>({
-    course: '',
-    level: '',
+    course: 'Computer Science',
+    level: '100',
     study_mode: 'regular',
     residential_status: 'resident',
     hall: '',
@@ -58,7 +68,8 @@ export const RegisterPage = () => {
     amount: '',
     reference_id: '',
     payment_method: 'cash',
-    operator: '',
+    mobile_number: '',
+    bank_name: 'GCB Bank',
   });
 
   const courses = [
@@ -71,16 +82,80 @@ export const RegisterPage = () => {
     'Allied Health'
   ];
 
-  const levels = ['100', '200', '300', '400'];
+  const levels = ['100', '200', '300', '400', '500', '600', '700'];
 
-  const nationalities = [
-    'Ghanaian',
-    'Nigerian',
-    'Kenyan',
-    'South African',
-    'Other African',
-    'International',
-  ];
+  // Form validation
+  const validatePersonalDetails = () => {
+    if (!personalDetails.surname.trim()) return 'Surname is required';
+    if (!personalDetails.first_name.trim()) return 'First name is required';
+    if (!personalDetails.student_id.trim()) return 'Student ID is required';
+    if (!personalDetails.email.trim()) return 'Email is required';
+    if (!personalDetails.phone_number.trim()) return 'Phone number is required';
+    if (personalDetails.phone_number.length < 10) return 'Phone number must be at least 10 digits';
+    return null;
+  };
+
+  const validateAcademicDetails = () => {
+    if (!academicDetails.course) return 'Course is required';
+    if (!academicDetails.level) return 'Level is required';
+    if (academicDetails.residential_status === 'resident' && !academicDetails.hall) {
+      return 'Hall selection is required for resident students';
+    }
+    return null;
+  };
+
+  const validateFinancialDetails = () => {
+    if (!financialDetails.amount || parseFloat(financialDetails.amount) <= 0) {
+      return 'Payment amount is required';
+    }
+    if (!financialDetails.reference_id.trim()) return 'Reference ID is required';
+    if (financialDetails.payment_method === 'momo' && !financialDetails.mobile_number.trim()) {
+      return 'Mobile number is required for Mobile Money';
+    }
+    if (financialDetails.payment_method === 'bank' && !financialDetails.bank_name) {
+      return 'Bank name is required';
+    }
+    return null;
+  };
+
+  // Clear saved data function
+  const clearSavedData = () => {
+    localStorage.removeItem('registration_form_data');
+  };
+
+  // Load saved form data on component mount (simplified)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('registration_form_data');
+      if (saved) {
+        const data = JSON.parse(saved);
+        console.log('Loading saved data:', data); // Debug log
+
+        if (data.personalDetails) setPersonalDetails(data.personalDetails);
+        if (data.academicDetails) setAcademicDetails(data.academicDetails);
+        if (data.financialDetails) setFinancialDetails(data.financialDetails);
+        if (data.step) setStep(data.step);
+      }
+    } catch (error) {
+      console.error('Error loading saved form data:', error);
+    }
+  }, []);
+
+  // Simple auto-save functionality
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const formData = {
+        step,
+        personalDetails,
+        academicDetails,
+        financialDetails,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('registration_form_data', JSON.stringify(formData));
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [step, personalDetails, academicDetails, financialDetails]);
 
   const halls = [
     'Mensah Sarbah Hall',
@@ -96,6 +171,7 @@ export const RegisterPage = () => {
     'Elizabeth Sey', 
     'Jean Nelson',
     'Valco', 
+    'Vikings',
     'International Hostels', 
     'Jubilee', 
     'Diamond Jubilee',
@@ -104,6 +180,19 @@ export const RegisterPage = () => {
   ];
 
   const handleNext = () => {
+    // Validate current step before proceeding
+    let error = null;
+    if (step === 1) {
+      error = validatePersonalDetails();
+    } else if (step === 2) {
+      error = validateAcademicDetails();
+    }
+    
+    if (error) {
+      alert(error);
+      return;
+    }
+    
     if (step < 3) setStep(step + 1);
   };
 
@@ -113,15 +202,30 @@ export const RegisterPage = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Validate all steps before submission
+    const personalError = validatePersonalDetails();
+    const academicError = validateAcademicDetails();
+    const financialError = validateFinancialDetails();
+    
+    if (personalError || academicError || financialError) {
+      setError(personalError || academicError || financialError || 'Please fill all required fields');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
     try {
-      // Create new student record
-      const newStudent: Student = {
-        id: '',
+      // Create full name from parts for display
+      const fullName = `${personalDetails.surname} ${personalDetails.first_name} ${personalDetails.other_name}`.trim();
+
+      // Create new student record with separate name fields
+      const newStudent = {
         student_id: personalDetails.student_id,
-        name: personalDetails.name,
+        surname: personalDetails.surname,
+        first_name: personalDetails.first_name,
+        other_names: personalDetails.other_name || '',
         email: personalDetails.email,
         phone: personalDetails.phone_number,
         gender: personalDetails.gender,
@@ -131,20 +235,18 @@ export const RegisterPage = () => {
         study_mode: academicDetails.study_mode,
         residential_status: academicDetails.residential_status,
         hall: academicDetails.residential_status === 'resident' ? academicDetails.hall : undefined,
-        registered_by: '',
-        created_at: '',
-        updated_at: ''
       };
 
       // Add student via API
-      const createdStudent = await addStudent(newStudent);
+      const createdStudent = await addStudent(newStudent as any);
 
       // Create payment record if amount is provided
       if (financialDetails.amount && parseFloat(financialDetails.amount) > 0) {
+        const studentFullName = `${createdStudent.surname} ${createdStudent.first_name} ${createdStudent.other_names || ''}`.trim();
         const newPayment: Payment = {
           id: '',
           student_id: createdStudent.id,
-          student_name: createdStudent.name,
+          student_name: studentFullName,
           amount: parseFloat(financialDetails.amount),
           // @ts-ignore
           payment_method: financialDetails.payment_method.toUpperCase(),
@@ -159,10 +261,11 @@ export const RegisterPage = () => {
         await addPayment(newPayment);
       }
 
-      // Show success modal
-      setRegisteredStudentName(personalDetails.name);
+      // Show success modal and clear saved data
+      setRegisteredStudentName(fullName);
       setRegisteredStudentId(personalDetails.student_id);
       setShowSuccessModal(true);
+      clearSavedData(); // Clear saved form data after successful submission
     } catch (err: any) {
       setError(err.message || 'Failed to register student');
     } finally {
@@ -172,7 +275,15 @@ export const RegisterPage = () => {
 
   const isStepValid = () => {
     if (step === 1) {
-      return Object.values(personalDetails).every((val) => val.trim() !== '');
+      // Require surname, first_name, email, student_id, gender, nationality, phone_number
+      // other_name is optional
+      return personalDetails.surname.trim() !== '' &&
+        personalDetails.first_name.trim() !== '' &&
+        personalDetails.email.trim() !== '' &&
+        personalDetails.student_id.trim() !== '' &&
+        personalDetails.gender.trim() !== '' &&
+        personalDetails.nationality.trim() !== '' &&
+        personalDetails.phone_number.trim() !== '';
     }
     if (step === 2) {
       // Check if all required fields are filled
@@ -187,7 +298,14 @@ export const RegisterPage = () => {
       return allFieldsFilled;
     }
     if (step === 3) {
-      return financialDetails.amount && financialDetails.reference_id;
+      const baseValid = financialDetails.amount && financialDetails.reference_id;
+      if (financialDetails.payment_method === 'momo') {
+        return baseValid && financialDetails.mobile_number.trim() !== '';
+      }
+      if (financialDetails.payment_method === 'bank') {
+        return baseValid && financialDetails.bank_name.trim() !== '';
+      }
+      return baseValid;
     }
     return false;
   };
@@ -261,21 +379,56 @@ export const RegisterPage = () => {
             {/* Step 1: Personal Details */}
             {step === 1 && (
               <div className="space-y-4 animate-slide-in">
+                {/* Name Fields - Side by Side */}
                 <div className="space-y-2">
                   <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
                     <User className="w-3 h-3" />
-                    Full Name *
+                    Student Name *
                   </label>
-                  <input
-                    type="text"
-                    value={personalDetails.name}
-                    onChange={(e) =>
-                      setPersonalDetails({ ...personalDetails, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="Enter student's full name"
-                    required
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <input
+                        type="text"
+                        value={personalDetails.surname}
+                        onChange={(e) =>
+                          setPersonalDetails({ ...personalDetails, surname: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Surname *"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={personalDetails.first_name}
+                        onChange={(e) =>
+                          setPersonalDetails({ ...personalDetails, first_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="First Name *"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={personalDetails.other_name}
+                        onChange={(e) =>
+                          setPersonalDetails({ ...personalDetails, other_name: e.target.value })
+                        }
+                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                        placeholder="Other Name (Optional)"
+                      />
+                    </div>
+                  </div>
+                  {(personalDetails.surname || personalDetails.first_name || personalDetails.other_name) && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Full name: <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {`${personalDetails.surname} ${personalDetails.first_name} ${personalDetails.other_name}`.trim() || 'Enter name above'}
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -341,7 +494,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </select>
@@ -359,10 +511,9 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Nationality</option>
-                    {nationalities.map((nat) => (
-                      <option key={nat} value={nat}>
-                        {nat}
+                    {countries.map((country) => (
+                      <option key={country} value={country}>
+                        {country}
                       </option>
                     ))}
                   </select>
@@ -403,7 +554,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Course</option>
                     {courses.map((course) => (
                       <option key={course} value={course}>
                         {course}
@@ -424,7 +574,6 @@ export const RegisterPage = () => {
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
-                    <option value="">Select Level</option>
                     {levels.map((level) => (
                       <option key={level} value={level}>
                         Level {level}
@@ -518,14 +667,24 @@ export const RegisterPage = () => {
                   <input
                     type="number"
                     step="0.01"
+                    list="amount-options"
                     value={financialDetails.amount}
                     onChange={(e) =>
                       setFinancialDetails({ ...financialDetails, amount: e.target.value })
                     }
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="0.00"
+                    placeholder="Select or enter amount"
                     required
                   />
+                  <datalist id="amount-options">
+                    <option value="30">30</option>
+                    <option value="100">100</option>
+                    <option value="130">130</option>
+                    <option value="150">150</option>
+                  </datalist>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Common amounts: GH₵30, GH₵100, GH₵130, GH₵150 or enter custom amount
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -594,6 +753,8 @@ export const RegisterPage = () => {
               </div>
             )}
 
+
+
             {/* Navigation Buttons */}
             <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
               {step > 1 ? (
@@ -652,16 +813,18 @@ export const RegisterPage = () => {
                   setShowSuccessModal(false);
                   setStep(1);
                   setPersonalDetails({
-                    name: '',
+                    surname: '',
+                    first_name: '',
+                    other_name: '',
                     email: '',
                     student_id: '',
-                    gender: '',
-                    nationality: '',
+                    gender: 'Male',
+                    nationality: 'Ghanaian',
                     phone_number: '',
                   });
                   setAcademicDetails({
-                    course: '',
-                    level: '',
+                    course: 'Computer Science',
+                    level: '100',
                     study_mode: 'regular',
                     residential_status: 'resident',
                     hall: '',
@@ -670,7 +833,8 @@ export const RegisterPage = () => {
                     amount: '',
                     reference_id: '',
                     payment_method: 'cash',
-                    operator: '',
+                    mobile_number: '',
+                    bank_name: 'GCB Bank',
                   });
                 }}
                 className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-all"

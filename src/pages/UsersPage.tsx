@@ -225,7 +225,7 @@ export const UsersPage = () => {
     } catch (error: any) {
       console.error('Failed to toggle user status:', error);
       const errorMessage = formatApiError(error);
-      alert(`Failed to toggle user status: ${errorMessage}`);\n    }
+      alert(`Failed to toggle user status: ${errorMessage}`);   }
   };
 
   const fetchUserActivities = async (userId: string) => {

@@ -125,14 +125,7 @@ export const financialDetailsSchema = Yup.object().shape({
     .oneOf(['cash', 'momo', 'bank'], 'Please select a valid payment method'),
   
   mobile_number: Yup.string()
-    .when('payment_method', {
-      is: 'momo',
-      then: (schema) => schema
-        .required('Mobile number is required for Mobile Money')
-        .min(10, 'Mobile number must be at least 10 digits')
-        .matches(/^[0-9+\s()-]+$/, 'Mobile number can only contain digits, +, spaces, parentheses, and hyphens'),
-      otherwise: (schema) => schema.notRequired(),
-    }),
+    .notRequired(), // Mobile number is optional, not stored in backend
   
   operator: Yup.string()
     .when('payment_method', {

@@ -309,7 +309,7 @@ export const RegisterPage = () => {
     if (step === 3) {
       const baseValid = financialDetails.amount && financialDetails.reference_id;
       if (financialDetails.payment_method === 'momo') {
-        return baseValid && financialDetails.mobile_number.trim() !== '' && financialDetails.operator && financialDetails.operator.trim() !== '';
+        return baseValid && financialDetails.operator && financialDetails.operator.trim() !== '';
       }
       if (financialDetails.payment_method === 'bank') {
         return baseValid && financialDetails.bank_name.trim() !== '';
@@ -718,12 +718,15 @@ export const RegisterPage = () => {
                   </label>
                   <select
                     value={financialDetails.payment_method}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newPaymentMethod = e.target.value as any;
                       setFinancialDetails({
                         ...financialDetails,
-                        payment_method: e.target.value as any,
-                      })
-                    }
+                        payment_method: newPaymentMethod,
+                        // Clear operator when switching away from momo
+                        operator: newPaymentMethod === 'momo' ? financialDetails.operator : '',
+                      });
+                    }}
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >

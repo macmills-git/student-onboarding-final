@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, UserCircle, Lock } from 'lucide-react';
 import compssaLogo from '../assets/images/compssalogo.png';
 import ugLandscape from '../assets/images/uglandscape.png';
+import { formatApiError } from '../utils/validationSchemas';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -21,8 +22,9 @@ export const LoginPage = () => {
     try {
       await signIn(username, password);
       navigate('/home');
-    } catch (err) {
-      setError('Invalid username or password');
+    } catch (err: any) {
+      const errorMessage = formatApiError(err);
+      setError(errorMessage || 'Invalid username or password');
     } finally {
       setLoading(false);
     }
@@ -114,28 +116,6 @@ export const LoginPage = () => {
               )}
             </button>
           </form>
-
-          <div className="text-center space-y-1.5">
-            <p className="text-sm text-gray-300 dark:text-gray-400">
-              Demo Mode - No Backend Required
-            </p>
-            <div className="text-sm text-gray-400 space-y-0.5">
-              <p><span className="text-blue-300">mcmills</span> / <span className="text-blue-300">mcmills1</span> (Admin)</p>
-              <p><span className="text-green-300">clerk</span> / <span className="text-green-300">Clerk123!</span> (Clerk)</p>
-            </div>
-            <button
-              onClick={() => {
-                setUsername('mcmills');
-                setPassword('mcmills1');
-              }}
-              className="text-xs text-blue-400 hover:text-blue-300 underline"
-            >
-              Auto-fill admin credentials
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              ✨ Frontend-only demo - No backend required
-            </p>
-          </div>
 
           <div className="pt-3 border-t border-white/10">
             <p className="text-sm text-center text-gray-400">

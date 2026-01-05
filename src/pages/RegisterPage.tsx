@@ -4,6 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { useData, Student, Payment } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { countries } from '../data/countries';
+import { 
+  personalDetailsSchema, 
+  academicDetailsSchema, 
+  financialDetailsSchema,
+  getValidationErrors,
+  formatApiError 
+} from '../utils/validationSchemas';
+import { ErrorMessage } from '../components/ErrorMessage';
 
 interface PersonalDetails {
   surname: string;
@@ -84,38 +92,36 @@ export const RegisterPage = () => {
 
   const levels = ['100', '200', '300', '400', '500', '600', '700'];
 
-  // Form validation
-  const validatePersonalDetails = () => {
-    if (!personalDetails.surname.trim()) return 'Surname is required';
-    if (!personalDetails.first_name.trim()) return 'First name is required';
-    if (!personalDetails.student_id.trim()) return 'Student ID is required';
-    if (!personalDetails.email.trim()) return 'Email is required';
-    if (!personalDetails.phone_number.trim()) return 'Phone number is required';
-    if (personalDetails.phone_number.length < 10) return 'Phone number must be at least 10 digits';
-    return null;
+  // Form validation using Yup
+  const validatePersonalDetails = async () => {
+    try {
+      await personalDetailsSchema.validate(personalDetails, { abortEarly: false });
+      return null;
+    } catch (error: any) {
+      return getValidationErrors(error);
+    }
   };
 
-  const validateAcademicDetails = () => {
-    if (!academicDetails.course) return 'Course is required';
-    if (!academicDetails.level) return 'Level is required';
-    if (academicDetails.residential_status === 'resident' && !academicDetails.hall) {
-      return 'Hall selection is required for resident students';
+  const validateAcademicDetails = async () => {
+    try {
+      await academicDetailsSchema.validate(academicDetails, { abortEarly: false });
+      return null;
+    } catch (error: any) {
+      return getValidationErrors(error);
     }
-    return null;
   };
 
-  const validateFinancialDetails = () => {
-    if (!financialDetails.amount || parseFloat(financialDetails.amount) <= 0) {
-      return 'Payment amount is required';
+  const validateFinancialDetails = async () => {
+    try {
+      const validationData = {
+        ...financialDetails,
+        amount: financialDetails.amount ? parseFloat(financialDetails.amount) : 0,
+      };
+      await financialDetailsSchema.validate(validationData, { abortEarly: false });
+      return null;
+    } catch (error: any) {
+      return getValidationErrors(error);
     }
-    if (!financialDetails.reference_id.trim()) return 'Reference ID is required';
-    if (financialDetails.payment_method === 'momo' && !financialDetails.mobile_number.trim()) {
-      return 'Mobile number is required for Mobile Money';
-    }
-    if (financialDetails.payment_method === 'bank' && !financialDetails.bank_name) {
-      return 'Bank name is required';
-    }
-    return null;
   };
 
   // Clear saved data function
@@ -179,20 +185,21 @@ export const RegisterPage = () => {
     "Other"
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // Validate current step before proceeding
     let error = null;
     if (step === 1) {
-      error = validatePersonalDetails();
+      error = await validatePersonalDetails();
     } else if (step === 2) {
-      error = validateAcademicDetails();
+      error = await validateAcademicDetails();
     }
     
     if (error) {
-      alert(error);
+      setError(error);
       return;
     }
     
+    setError('');
     if (step < 3) setStep(step + 1);
   };
 
@@ -204,9 +211,9 @@ export const RegisterPage = () => {
     e.preventDefault();
     
     // Validate all steps before submission
-    const personalError = validatePersonalDetails();
-    const academicError = validateAcademicDetails();
-    const financialError = validateFinancialDetails();
+    const personalError = await validatePersonalDetails();
+    const academicError = await validateAcademicDetails();
+    const financialError = await validateFinancialDetails();
     
     if (personalError || academicError || financialError) {
       setError(personalError || academicError || financialError || 'Please fill all required fields');
@@ -267,7 +274,9 @@ export const RegisterPage = () => {
       setShowSuccessModal(true);
       clearSavedData(); // Clear saved form data after successful submission
     } catch (err: any) {
-      setError(err.message || 'Failed to register student');
+      const errorMessage = formatApiError(err);
+      setError(errorMessage);
+      console.error('Registration error:', err);
     } finally {
       setLoading(false);
     }
@@ -300,7 +309,7 @@ export const RegisterPage = () => {
     if (step === 3) {
       const baseValid = financialDetails.amount && financialDetails.reference_id;
       if (financialDetails.payment_method === 'momo') {
-        return baseValid && financialDetails.mobile_number.trim() !== '';
+        return baseValid && financialDetails.operator && financialDetails.operator.trim() !== '';
       }
       if (financialDetails.payment_method === 'bank') {
         return baseValid && financialDetails.bank_name.trim() !== '';
@@ -709,12 +718,15 @@ export const RegisterPage = () => {
                   </label>
                   <select
                     value={financialDetails.payment_method}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newPaymentMethod = e.target.value as any;
                       setFinancialDetails({
                         ...financialDetails,
-                        payment_method: e.target.value as any,
-                      })
-                    }
+                        payment_method: newPaymentMethod,
+                        // Clear operator when switching away from momo
+                        operator: newPaymentMethod === 'momo' ? financialDetails.operator : '',
+                      });
+                    }}
                     className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   >
@@ -747,11 +759,7 @@ export const RegisterPage = () => {
               </div>
             )}
 
-            {error && (
-              <div className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-base text-red-600 dark:text-red-400">
-                {error}
-              </div>
-            )}
+            <ErrorMessage message={error} onClose={() => setError('')} className="mt-4" />
 
 
 

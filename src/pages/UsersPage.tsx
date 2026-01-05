@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { UserPlus, Edit, Trash2, Shield, X, UserCircle, Activity, ChevronDown, ChevronUp, Clock, DollarSign, Users as UsersIcon, Calendar, TrendingUp } from 'lucide-react';
 import { usersAPI, dashboardAPI } from '../services/api';
+import { formatApiError } from '../utils/validationSchemas';
 
 interface User {
   id: string;
@@ -85,9 +86,10 @@ export const UsersPage = () => {
       setLoading(true);
       const response = await usersAPI.getAll();
       setUsers(response);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch users:', error);
-      alert('Failed to load users. Please try again.');
+      const errorMessage = formatApiError(error);
+      alert(`Failed to load users: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -99,8 +101,10 @@ export const UsersPage = () => {
       if (response.success) {
         setUserPerformance(response.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch user performance:', error);
+      const errorMessage = formatApiError(error);
+      console.error(`User performance error: ${errorMessage}`);
     }
   };
 
@@ -169,7 +173,8 @@ export const UsersPage = () => {
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to create user:', error);
-      alert(error.message || 'Failed to create user. Please try again.');
+      const errorMessage = formatApiError(error);
+      alert(`Failed to create user: ${errorMessage}`);
     }
   };
 
@@ -189,7 +194,8 @@ export const UsersPage = () => {
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to update user:', error);
-      alert(error.message || 'Failed to update user. Please try again.');
+      const errorMessage = formatApiError(error);
+      alert(`Failed to update user: ${errorMessage}`);
     }
   };
 
@@ -204,7 +210,8 @@ export const UsersPage = () => {
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to delete user:', error);
-      alert(error.message || 'Failed to delete user. Please try again.');
+      const errorMessage = formatApiError(error);
+      alert(`Failed to delete user: ${errorMessage}`);
     }
   };
 
@@ -217,8 +224,8 @@ export const UsersPage = () => {
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to toggle user status:', error);
-      alert(error.message || 'Failed to toggle user status. Please try again.');
-    }
+      const errorMessage = formatApiError(error);
+      alert(`Failed to toggle user status: ${errorMessage}`);\n    }
   };
 
   const fetchUserActivities = async (userId: string) => {
@@ -229,11 +236,13 @@ export const UsersPage = () => {
       if (response.success) {
         setSelectedUserActivities(response.data);
       } else {
-        alert('Failed to load user activities.');
+        const errorMessage = 'Failed to load user activities.';
+        alert(errorMessage);
       }
     } catch (error: any) {
       console.error('Failed to fetch user activities:', error);
-      alert('Failed to load user activities. Please try again.');
+      const errorMessage = formatApiError(error);
+      alert(`Failed to load user activities: ${errorMessage}`);
     } finally {
       setLoadingActivities(false);
     }

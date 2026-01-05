@@ -157,7 +157,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         try {
             const newStudent = await studentsAPI.create({
                 student_id: student.student_id,
-                name: student.name,
+                surname: student.surname,
+                first_name: student.first_name,
+                other_names: student.other_names,
                 email: student.email,
                 phone: student.phone,
                 gender: student.gender,
@@ -180,7 +182,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         try {
             const updated = await studentsAPI.update(id, {
                 student_id: updatedStudent.student_id,
-                name: updatedStudent.name,
+                surname: updatedStudent.surname,
+                first_name: updatedStudent.first_name,
+                other_names: updatedStudent.other_names,
                 email: updatedStudent.email,
                 phone: updatedStudent.phone,
                 gender: updatedStudent.gender,

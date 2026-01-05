@@ -3,7 +3,7 @@
  * Handles all HTTP requests to the FastAPI backend
  */
 
-const API_BASE_URL = 'https://compssa-onboarding-backend.onrender.com/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 // Token management
 export const getToken = (): string | null => {
@@ -47,7 +47,28 @@ async function apiRequest<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'An error occurred' }));
-    throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+    
+    // Handle different error formats from FastAPI
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    
+    if (error.detail) {
+      if (typeof error.detail === 'string') {
+        errorMessage = error.detail;
+      } else if (Array.isArray(error.detail)) {
+        // Handle validation errors (array of objects)
+        errorMessage = error.detail
+          .map((e: any) => e.msg || e.message || JSON.stringify(e))
+          .join(', ');
+      } else if (typeof error.detail === 'object') {
+        errorMessage = JSON.stringify(error.detail);
+      }
+    }
+    
+    // Throw an error object with the message
+    const err = new Error(errorMessage);
+    // @ts-ignore - Add the full error object for debugging
+    err.detail = error.detail;
+    throw err;
   }
 
   return response.json();

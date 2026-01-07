@@ -42,9 +42,7 @@ interface FinancialDetails {
 }
 
 export const RegisterPage = () => {
-  const navigate = useNavigate();
-  const { students, addStudent, addPayment } = useData();
-  const { profile } = useAuth();
+  const { addStudent, addPayment } = useData();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

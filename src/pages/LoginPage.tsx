@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserCircle, Lock } from 'lucide-react';
+import { UserCircle, Lock } from 'lucide-react';
 import compssaLogo from '../assets/images/compssalogo.png';
 import ugLandscape from '../assets/images/uglandscape.png';
 import { formatApiError } from '../utils/validationSchemas';

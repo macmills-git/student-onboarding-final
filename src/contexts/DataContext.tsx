@@ -90,7 +90,7 @@ export const useData = () => {
 };
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-    const { user, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [students, setStudents] = useState<Student[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
     const [users, setUsers] = useState<User[]>([]);

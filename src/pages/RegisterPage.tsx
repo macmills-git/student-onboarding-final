@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Check, User, GraduationCap, DollarSign, FileText, Activity, Phone, Mail, CreditCard, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useData, Student, Payment } from '../contexts/DataContext';
+import { useData, Payment } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { countries } from '../data/countries';
 import { 
@@ -42,9 +42,7 @@ interface FinancialDetails {
 }
 
 export const RegisterPage = () => {
-  const navigate = useNavigate();
-  const { students, addStudent, addPayment } = useData();
-  const { profile } = useAuth();
+  const { addStudent, addPayment } = useData();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

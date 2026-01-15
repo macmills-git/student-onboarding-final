@@ -1,19 +1,14 @@
-import { useState, FormEvent, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, Check, User, GraduationCap, DollarSign, FileText, Activity, Phone, Mail, CreditCard, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, Check, User, GraduationCap, DollarSign, Phone, Mail, CreditCard, X } from 'lucide-react';
+import { Formik, Form, Field, FormikHelpers } from 'formik';
+import * as Yup from 'yup';
 import { useData, Payment } from '../contexts/DataContext';
-import { useAuth } from '../contexts/AuthContext';
 import { countries } from '../data/countries';
-import { 
-  personalDetailsSchema, 
-  academicDetailsSchema, 
-  financialDetailsSchema,
-  getValidationErrors,
-  formatApiError 
-} from '../utils/validationSchemas';
+import { formatApiError } from '../utils/validationSchemas';
 import { ErrorMessage } from '../components/ErrorMessage';
 
-interface PersonalDetails {
+interface RegistrationFormValues {
+  // Personal Details
   surname: string;
   first_name: string;
   other_name: string;
@@ -22,36 +17,144 @@ interface PersonalDetails {
   gender: string;
   nationality: string;
   phone_number: string;
-}
-
-interface AcademicDetails {
+  // Academic Details
   course: string;
   level: string;
-  study_mode: 'regular' | 'distance' | 'city_campus';
+  study_mode: 'regular' | 'distance';
   residential_status: 'resident' | 'non_resident';
   hall: string;
-}
-
-interface FinancialDetails {
+  // Financial Details
   amount: string;
   reference_id: string;
   payment_method: 'cash' | 'momo' | 'bank';
   mobile_number: string;
   bank_name: string;
-  operator?: string;
+  operator: string;
 }
+
+// Validation schemas for each step
+const step1ValidationSchema = Yup.object().shape({
+  surname: Yup.string()
+    .required('Surname is required')
+    .min(2, 'Surname must be at least 2 characters')
+    .max(50, 'Surname must not exceed 50 characters')
+    .matches(/^[a-zA-Z\s-']+$/, 'Surname can only contain letters, spaces, hyphens, and apostrophes'),
+  
+  first_name: Yup.string()
+    .required('First name is required')
+    .min(2, 'First name must be at least 2 characters')
+    .max(50, 'First name must not exceed 50 characters')
+    .matches(/^[a-zA-Z\s-']+$/, 'First name can only contain letters, spaces, hyphens, and apostrophes'),
+  
+  other_name: Yup.string()
+    .max(100, 'Other names must not exceed 100 characters')
+    .matches(/^[a-zA-Z\s-']*$/, 'Other names can only contain letters, spaces, hyphens, and apostrophes'),
+  
+  email: Yup.string()
+    .required('Email is required')
+    .email('Please enter a valid email address'),
+  
+  student_id: Yup.string()
+    .required('Student ID is required')
+    .matches(/^\d+$/, 'Must contain numbers only')
+    .min(8, 'Student ID must be at least 8 characters')
+    .max(8, 'Student ID must not exceed 8 characters'),
+  
+  gender: Yup.string()
+    .required('Gender is required')
+    .oneOf(['Male', 'Female'], 'Please select a valid gender'),
+  
+  nationality: Yup.string()
+    .required('Nationality is required'),
+  
+  phone_number: Yup.string()
+    .required('Phone number is required')
+    .min(10, 'Phone number must be at least 10 digits')
+    .max(20, 'Phone number must not exceed 20 digits')
+    .matches(/^[0-9+\s()-]+$/, 'Phone number can only contain digits, +, spaces, parentheses, and hyphens'),
+});
+
+const step2ValidationSchema = Yup.object().shape({
+  course: Yup.string()
+    .required('Course is required'),
+  
+  level: Yup.string()
+    .required('Level is required')
+    .oneOf(['100', '200', '300', '400', '500', '600', '700'], 'Please select a valid level'),
+  
+  study_mode: Yup.string()
+    .required('Study mode is required')
+    .oneOf(['regular', 'distance'], 'Please select a valid study mode'),
+  
+  residential_status: Yup.string()
+    .required('Residential status is required')
+    .oneOf(['resident', 'non_resident'], 'Please select a valid residential status'),
+  
+  hall: Yup.string()
+    .when('residential_status', {
+      is: 'resident',
+      then: (schema) => schema.required('Hall selection is required for resident students'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+});
+
+const step3ValidationSchema = Yup.object().shape({
+  amount: Yup.string()
+    .required('Payment amount is required')
+    .test('is-positive', 'Amount must be greater than 0', (value) => {
+      if (!value) return false;
+      const num = parseFloat(value);
+      return !isNaN(num) && num > 0;
+    }),
+  
+  reference_id: Yup.string()
+    .required('Reference ID is required')
+    .min(3, 'Reference ID must be at least 3 characters')
+    .max(100, 'Reference ID must not exceed 100 characters'),
+  
+  payment_method: Yup.string()
+    .required('Payment method is required')
+    .oneOf(['cash', 'momo', 'bank'], 'Please select a valid payment method'),
+  
+  operator: Yup.string()
+    .when('payment_method', {
+      is: 'momo',
+      then: (schema) => schema.required('Mobile Money operator is required'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  
+  bank_name: Yup.string()
+    .when('payment_method', {
+      is: 'bank',
+      then: (schema) => schema.required('Bank name is required for Bank Transfer'),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+});
+
+// Get the validation schema for the current step
+const getValidationSchemaForStep = (step: number) => {
+  switch (step) {
+    case 1:
+      return step1ValidationSchema;
+    case 2:
+      return step2ValidationSchema;
+    case 3:
+      return step3ValidationSchema;
+    default:
+      return Yup.object().shape({});
+  }
+};
 
 export const RegisterPage = () => {
   const { addStudent, addPayment } = useData();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredStudentName, setRegisteredStudentName] = useState('');
   const [registeredStudentId, setRegisteredStudentId] = useState('');
 
-
-  const [personalDetails, setPersonalDetails] = useState<PersonalDetails>({
+  // Initial form values
+  const initialValues: RegistrationFormValues = {
+    // Personal Details
     surname: '',
     first_name: '',
     other_name: '',
@@ -60,23 +163,20 @@ export const RegisterPage = () => {
     gender: 'Male',
     nationality: 'Ghana',
     phone_number: '',
-  });
-
-  const [academicDetails, setAcademicDetails] = useState<AcademicDetails>({
+    // Academic Details
     course: 'Computer Science',
     level: '100',
     study_mode: 'regular',
     residential_status: 'resident',
     hall: '',
-  });
-
-  const [financialDetails, setFinancialDetails] = useState<FinancialDetails>({
+    // Financial Details
     amount: '',
     reference_id: '',
     payment_method: 'cash',
     mobile_number: '',
     bank_name: 'GCB Bank',
-  });
+    operator: '',
+  };
 
   const courses = [
     'Computer Science',
@@ -89,77 +189,6 @@ export const RegisterPage = () => {
   ];
 
   const levels = ['100', '200', '300', '400', '500', '600', '700'];
-
-  // Form validation using Yup
-  const validatePersonalDetails = async () => {
-    try {
-      await personalDetailsSchema.validate(personalDetails, { abortEarly: false });
-      return null;
-    } catch (error: any) {
-      return getValidationErrors(error);
-    }
-  };
-
-  const validateAcademicDetails = async () => {
-    try {
-      await academicDetailsSchema.validate(academicDetails, { abortEarly: false });
-      return null;
-    } catch (error: any) {
-      return getValidationErrors(error);
-    }
-  };
-
-  const validateFinancialDetails = async () => {
-    try {
-      const validationData = {
-        ...financialDetails,
-        amount: financialDetails.amount ? parseFloat(financialDetails.amount) : 0,
-      };
-      await financialDetailsSchema.validate(validationData, { abortEarly: false });
-      return null;
-    } catch (error: any) {
-      return getValidationErrors(error);
-    }
-  };
-
-  // Clear saved data function
-  const clearSavedData = () => {
-    localStorage.removeItem('registration_form_data');
-  };
-
-  // Load saved form data on component mount (simplified)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('registration_form_data');
-      if (saved) {
-        const data = JSON.parse(saved);
-        console.log('Loading saved data:', data); // Debug log
-
-        if (data.personalDetails) setPersonalDetails(data.personalDetails);
-        if (data.academicDetails) setAcademicDetails(data.academicDetails);
-        if (data.financialDetails) setFinancialDetails(data.financialDetails);
-        if (data.step) setStep(data.step);
-      }
-    } catch (error) {
-      console.error('Error loading saved form data:', error);
-    }
-  }, []);
-
-  // Simple auto-save functionality
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const formData = {
-        step,
-        personalDetails,
-        academicDetails,
-        financialDetails,
-        timestamp: new Date().toISOString()
-      };
-      localStorage.setItem('registration_form_data', JSON.stringify(formData));
-    }, 1000);
-
-    return () => clearTimeout(timeoutId);
-  }, [step, personalDetails, academicDetails, financialDetails]);
 
   const halls = [
     'Mensah Sarbah Hall',
@@ -183,80 +212,59 @@ export const RegisterPage = () => {
     "Other"
   ];
 
-  const handleNext = async () => {
-    // Validate current step before proceeding
-    let error = null;
-    if (step === 1) {
-      error = await validatePersonalDetails();
-    } else if (step === 2) {
-      error = await validateAcademicDetails();
+  // Load saved form data on component mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('registration_form_data');
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.step) setStep(data.step);
+      }
+    } catch (error) {
+      console.error('Error loading saved form data:', error);
     }
-    
-    if (error) {
-      setError(error);
-      return;
-    }
-    
-    setError('');
-    if (step < 3) setStep(step + 1);
-  };
+  }, []);
 
-  const handlePrevious = () => {
-    if (step > 1) setStep(step - 1);
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    // Validate all steps before submission
-    const personalError = await validatePersonalDetails();
-    const academicError = await validateAcademicDetails();
-    const financialError = await validateFinancialDetails();
-    
-    if (personalError || academicError || financialError) {
-      setError(personalError || academicError || financialError || 'Please fill all required fields');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-
+  const handleSubmit = async (
+    values: RegistrationFormValues,
+    { setSubmitting, setErrors }: FormikHelpers<RegistrationFormValues>
+  ) => {
     try {
       // Create full name from parts for display
-      const fullName = `${personalDetails.surname} ${personalDetails.first_name} ${personalDetails.other_name}`.trim();
+      const fullName = `${values.surname} ${values.first_name} ${values.other_name}`.trim();
 
       // Create new student record with separate name fields
       const newStudent = {
-        student_id: personalDetails.student_id,
-        surname: personalDetails.surname,
-        first_name: personalDetails.first_name,
-        other_names: personalDetails.other_name || '',
-        email: personalDetails.email,
-        phone: personalDetails.phone_number,
-        gender: personalDetails.gender,
-        nationality: personalDetails.nationality,
-        course: academicDetails.course,
-        level: academicDetails.level,
-        study_mode: academicDetails.study_mode,
-        residential_status: academicDetails.residential_status,
-        hall: academicDetails.residential_status === 'resident' ? academicDetails.hall : undefined,
+        student_id: values.student_id,
+        surname: values.surname,
+        first_name: values.first_name,
+        other_names: values.other_name || '',
+        email: values.email,
+        phone: values.phone_number,
+        gender: values.gender,
+        nationality: values.nationality,
+        course: values.course,
+        level: values.level,
+        study_mode: values.study_mode,
+        residential_status: values.residential_status,
+        hall: values.residential_status === 'resident' ? values.hall : undefined,
       };
 
       // Add student via API
       const createdStudent = await addStudent(newStudent as any);
 
       // Create payment record if amount is provided
-      if (financialDetails.amount && parseFloat(financialDetails.amount) > 0) {
+      if (values.amount && parseFloat(values.amount) > 0) {
         const studentFullName = `${createdStudent.surname} ${createdStudent.first_name} ${createdStudent.other_names || ''}`.trim();
         const newPayment: Payment = {
           id: '',
           student_id: createdStudent.id,
           student_name: studentFullName,
-          amount: parseFloat(financialDetails.amount),
+          amount: parseFloat(values.amount),
           // @ts-ignore
-          payment_method: financialDetails.payment_method.toUpperCase(),
-          reference_id: financialDetails.reference_id,
-          operator: financialDetails.operator || '',
+          payment_method: values.payment_method.toUpperCase(),
+          reference_id: values.reference_id,
+          operator: values.operator || '',
           recorded_by: '',
           payment_date: '',
           created_at: ''
@@ -266,60 +274,32 @@ export const RegisterPage = () => {
         await addPayment(newPayment);
       }
 
-      // Show success modal and clear saved data
+      // Clear saved data and show success
+      localStorage.removeItem('registration_form_data');
       setRegisteredStudentName(fullName);
-      setRegisteredStudentId(personalDetails.student_id);
+      setRegisteredStudentId(values.student_id);
       setShowSuccessModal(true);
-      clearSavedData(); // Clear saved form data after successful submission
     } catch (err: any) {
       const errorMessage = formatApiError(err);
-      setError(errorMessage);
+      setErrors({ student_id: errorMessage });
       console.error('Registration error:', err);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const isStepValid = () => {
-    if (step === 1) {
-      // Require surname, first_name, email, student_id, gender, nationality, phone_number
-      // other_name is optional
-      return personalDetails.surname.trim() !== '' &&
-        personalDetails.first_name.trim() !== '' &&
-        personalDetails.email.trim() !== '' &&
-        personalDetails.student_id.trim() !== '' &&
-        personalDetails.gender.trim() !== '' &&
-        personalDetails.nationality.trim() !== '' &&
-        personalDetails.phone_number.trim() !== '';
+  const handleNext = async (validateForm: () => Promise<any>) => {
+    const errors = await validateForm();
+    
+    // If there are no validation errors, proceed to the next step
+    if (Object.keys(errors).length === 0) {
+      setStep(step + 1);
     }
-    if (step === 2) {
-      // Check if all required fields are filled
-      const requiredFields = [academicDetails.course, academicDetails.level, academicDetails.study_mode, academicDetails.residential_status];
-      const allFieldsFilled = requiredFields.every((val) => val.trim() !== '');
-      
-      // If residential_status is 'resident', hall must be specified
-      if (academicDetails.residential_status === 'resident') {
-        return allFieldsFilled && academicDetails.hall.trim() !== '';
-      }
-      
-      return allFieldsFilled;
-    }
-    if (step === 3) {
-      const baseValid = financialDetails.amount && financialDetails.reference_id;
-      if (financialDetails.payment_method === 'momo') {
-        return baseValid && financialDetails.operator && financialDetails.operator.trim() !== '';
-      }
-      if (financialDetails.payment_method === 'bank') {
-        return baseValid && financialDetails.bank_name.trim() !== '';
-      }
-      return baseValid;
-    }
-    return false;
+    // If there are errors, they're already displayed by Formik
   };
 
   return (
     <div className="animate-fade-in pb-6 max-w-2xl mx-auto space-y-4">
-
       {/* Enhanced Progress Indicator */}
       <div className="mb-6">
         <div className="flex items-center justify-between relative max-w-2xl mx-auto">
@@ -374,440 +354,433 @@ export const RegisterPage = () => {
         </div>
       </div>
 
-      {/* Step-by-Step Form */}
-      <form onSubmit={handleSubmit}>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <Formik
+        initialValues={initialValues}
+        validationSchema={getValidationSchemaForStep(step)}
+        validateOnChange={true}
+        validateOnBlur={true}
+        onSubmit={handleSubmit}
+        enableReinitialize
+      >
+        {({ values, errors, touched, isSubmitting, validateForm, setFieldValue, setErrors }) => {
+          // Auto-save functionality
+          useEffect(() => {
+            const timeoutId = setTimeout(() => {
+              const formData = {
+                step,
+                ...values,
+                timestamp: new Date().toISOString()
+              };
+              localStorage.setItem('registration_form_data', JSON.stringify(formData));
+            }, 1000);
 
+            return () => clearTimeout(timeoutId);
+          }, [step, values]);
 
-
-          {/* Form Content - Show Only Current Step */}
-          <div className="p-4">
-
-            {/* Step 1: Personal Details */}
-            {step === 1 && (
-              <div className="space-y-4 animate-slide-in">
-                {/* Name Fields - Side by Side */}
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
-                    <User className="w-3 h-3" />
-                    Student Name *
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <input
-                        type="text"
-                        value={personalDetails.surname}
-                        onChange={(e) =>
-                          setPersonalDetails({ ...personalDetails, surname: e.target.value })
-                        }
-                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                        placeholder="Surname *"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        value={personalDetails.first_name}
-                        onChange={(e) =>
-                          setPersonalDetails({ ...personalDetails, first_name: e.target.value })
-                        }
-                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                        placeholder="First Name *"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        value={personalDetails.other_name}
-                        onChange={(e) =>
-                          setPersonalDetails({ ...personalDetails, other_name: e.target.value })
-                        }
-                        className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                        placeholder="Other Name (Optional)"
-                      />
-                    </div>
-                  </div>
-                  {(personalDetails.surname || personalDetails.first_name || personalDetails.other_name) && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Full name: <span className="font-medium text-blue-600 dark:text-blue-400">
-                        {`${personalDetails.surname} ${personalDetails.first_name} ${personalDetails.other_name}`.trim() || 'Enter name above'}
-                      </span>
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
-                    <CreditCard className="w-3 h-3" />
-                    Student ID *
-                  </label>
-                  <input
-                    type="text"
-                    value={personalDetails.student_id}
-                    onChange={(e) =>
-                      setPersonalDetails({ ...personalDetails, student_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="e.g., 11*****8"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
-                    <Mail className="w-3 h-3" />
-                    Student Email *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={personalDetails.email.replace('@st.ug.edu.gh', '')}
-                      onChange={(e) => {
-                        const username = e.target.value.replace(/[^a-zA-Z0-9._-]/g, '');
-                        setPersonalDetails({
-                          ...personalDetails,
-                          email: username + '@st.ug.edu.gh'
-                        });
-                      }}
-                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                      placeholder="Enter username"
-                      required
-                    />
-                    {personalDetails.email.replace('@st.ug.edu.gh', '') && (
-                      <div className="absolute inset-0 px-3 py-2.5 text-base pointer-events-none flex items-center">
-                        <span className="invisible">{personalDetails.email.replace('@st.ug.edu.gh', '')}</span>
-                        <span className="text-gray-500 dark:text-gray-400">@st.ug.edu.gh</span>
+          return (
+            <Form>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="p-4">
+                  {/* Step 1: Personal Details */}
+                  {step === 1 && (
+                    <div className="space-y-4 animate-slide-in">
+                      {/* Name Fields */}
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                          <User className="w-3 h-3" />
+                          Student Name *
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <Field
+                              name="surname"
+                              type="text"
+                              className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                              placeholder="Surname *"
+                            />
+                            {touched.surname && errors.surname && (
+                              <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.surname}</div>
+                            )}
+                          </div>
+                          <div>
+                            <Field
+                              name="first_name"
+                              type="text"
+                              className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                              placeholder="First Name *"
+                            />
+                            {touched.first_name && errors.first_name && (
+                              <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.first_name}</div>
+                            )}
+                          </div>
+                          <div>
+                            <Field
+                              name="other_name"
+                              type="text"
+                              className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                              placeholder="Other Name (Optional)"
+                            />
+                          </div>
+                        </div>
+                        {(values.surname || values.first_name || values.other_name) && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Full name: <span className="font-medium text-blue-600 dark:text-blue-400">
+                              {`${values.surname} ${values.first_name} ${values.other_name}`.trim() || 'Enter name above'}
+                            </span>
+                          </p>
+                        )}
                       </div>
+
+                      {/* Student ID */}
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                          <CreditCard className="w-3 h-3" />
+                          Student ID *
+                        </label>
+                        <Field
+                          name="student_id"
+                          type="text"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                          placeholder="e.g., 11*****8"
+                        />
+                        {touched.student_id && errors.student_id && (
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.student_id}</div>
+                        )}
+                      </div>
+
+                      {/* Student Email */}
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                          <Mail className="w-3 h-3" />
+                          Student Email *
+                        </label>
+                        <div className="relative">
+                          <Field
+                            name="email"
+                            type="email"
+                            className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                            placeholder="Enter email"
+                          />
+                        </div>
+                        {touched.email && errors.email && (
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.email}</div>
+                        )}
+                        <p className="text-base text-gray-500 dark:text-gray-400">
+                          Email: <span className="font-medium text-blue-600 dark:text-blue-400">
+                            {values.email || 'email@st.ug.edu.gh'}
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* Gender */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Gender *
+                        </label>
+                        <Field
+                          as="select"
+                          name="gender"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </Field>
+                      </div>
+
+                      {/* Nationality */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Nationality *
+                        </label>
+                        <Field
+                          as="select"
+                          name="nationality"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          {countries.map((country) => (
+                            <option key={country} value={country}>
+                              {country}
+                            </option>
+                          ))}
+                        </Field>
+                      </div>
+
+                      {/* Phone Number */}
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                          <Phone className="w-3 h-3" />
+                          Phone Number *
+                        </label>
+                        <Field
+                          name="phone_number"
+                          type="tel"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                          placeholder="+233 XX XXX XXXX"
+                        />
+                        {touched.phone_number && errors.phone_number && (
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.phone_number}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Academic Details */}
+                  {step === 2 && (
+                    <div className="space-y-4 animate-slide-in">
+                      {/* Course */}
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                          <GraduationCap className="w-3 h-3" />
+                          Course *
+                        </label>
+                        <Field
+                          as="select"
+                          name="course"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          {courses.map((course) => (
+                            <option key={course} value={course}>
+                              {course}
+                            </option>
+                          ))}
+                        </Field>
+                      </div>
+
+                      {/* Level */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Academic Level *
+                        </label>
+                        <Field
+                          as="select"
+                          name="level"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          {levels.map((level) => (
+                            <option key={level} value={level}>
+                              Level {level}
+                            </option>
+                          ))}
+                        </Field>
+                      </div>
+
+                      {/* Study Mode */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Study Mode *
+                        </label>
+                        <Field
+                          as="select"
+                          name="study_mode"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          <option value="regular">Regular</option>
+                          <option value="distance">Distance</option>
+                        </Field>
+                      </div>
+
+                      {/* Residential Status */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Residential Status *
+                        </label>
+                        <Field
+                          as="select"
+                          name="residential_status"
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            setFieldValue('residential_status', e.target.value);
+                            if (e.target.value === 'non_resident') {
+                              setFieldValue('hall', '');
+                            }
+                          }}
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          <option value="resident">Resident</option>
+                          <option value="non_resident">Non-Resident</option>
+                        </Field>
+                      </div>
+
+                      {/* Hall/Hostel */}
+                      {values.residential_status === 'resident' && (
+                        <div className="space-y-2 animate-slide-in">
+                          <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                            Hall/Hostel *
+                          </label>
+                          <Field
+                            as="select"
+                            name="hall"
+                            className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          >
+                            <option value="">Select Hall/Hostel</option>
+                            {halls.map((hall) => (
+                              <option key={hall} value={hall}>
+                                {hall}
+                              </option>
+                            ))}
+                          </Field>
+                          {touched.hall && errors.hall && (
+                            <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.hall}</div>
+                          )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Required for resident students
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Step 3: Financial Details */}
+                  {step === 3 && (
+                    <div className="space-y-4 animate-slide-in">
+                      {/* Amount */}
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
+                          <DollarSign className="w-3 h-3" />
+                          Amount (GHS) *
+                        </label>
+                        <Field
+                          name="amount"
+                          type="text"
+                          step="0.01"
+                          list="amount-options"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                          placeholder="Select or enter amount"
+                        />
+                        <datalist id="amount-options">
+                          <option value="20">20</option>
+                          <option value="100">100</option>
+                          <option value="120">120</option>
+                        </datalist>
+                        {touched.amount && errors.amount && (
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.amount}</div>
+                        )}
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Common amounts: GH₵20, GH₵100 or enter custom amount
+                        </p>
+                      </div>
+
+                      {/* Reference ID */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Reference ID *
+                        </label>
+                        <Field
+                          name="reference_id"
+                          type="text"
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
+                          placeholder="Payment reference number"
+                        />
+                        {touched.reference_id && errors.reference_id && (
+                          <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.reference_id}</div>
+                        )}
+                      </div>
+
+                      {/* Payment Method */}
+                      <div className="space-y-2">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                          Payment Method *
+                        </label>
+                        <Field
+                          as="select"
+                          name="payment_method"
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            const newPaymentMethod = e.target.value;
+                            setFieldValue('payment_method', newPaymentMethod);
+                            // Clear operator when switching away from momo
+                            if (newPaymentMethod !== 'momo') {
+                              setFieldValue('operator', '');
+                            }
+                          }}
+                          className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        >
+                          <option value="cash">Cash Payment</option>
+                          <option value="momo">Mobile Money</option>
+                          <option value="bank">Bank Transfer</option>
+                        </Field>
+                      </div>
+
+                      {/* Mobile Money Operator */}
+                      {values.payment_method === 'momo' && (
+                        <div className="space-y-2 animate-slide-in">
+                          <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
+                            Mobile Money Operator *
+                          </label>
+                          <Field
+                            as="select"
+                            name="operator"
+                            className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                          >
+                            <option value="">Select operator</option>
+                            <option value="MTN">MTN Mobile Money</option>
+                            <option value="Telecel">Telecel Cash</option>
+                            <option value="AirtelTigo">AirtelTigo Money</option>
+                          </Field>
+                          {touched.operator && errors.operator && (
+                            <div className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.operator}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Error Display */}
+                  {Object.keys(errors).length > 0 && touched && (
+                    <ErrorMessage 
+                      message={Object.values(errors)[0] as string} 
+                      onClose={() => setErrors({})} 
+                      className="mt-4" 
+                    />
+                  )}
+
+                  {/* Navigation Buttons */}
+                  <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    {step > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(step - 1)}
+                        className="flex items-center gap-1 px-4 py-2 text-base bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-all font-medium"
+                      >
+                        <ArrowLeft className="w-3 h-3" />
+                        Previous
+                      </button>
+                    ) : (
+                      <div></div>
+                    )}
+
+                    <div className="flex items-center gap-2 text-base text-gray-500 dark:text-gray-400">
+                      Step {step} of 3
+                    </div>
+
+                    {step < 3 ? (
+                      <button
+                        type="button"
+                        onClick={() => handleNext(validateForm)}
+                        className="flex items-center gap-1 px-4 py-2 text-base bg-blue-500 text-white rounded hover:bg-blue-600 transition-all font-medium shadow-lg"
+                      >
+                        Next
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex items-center gap-1 px-4 py-2 text-base bg-green-500 text-white rounded hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
+                      >
+                        {isSubmitting ? (
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                        Complete Registration
+                      </button>
                     )}
                   </div>
-                  <p className="text-base text-gray-500 dark:text-gray-400">
-                    Full email: <span className="font-medium text-blue-600 dark:text-blue-400">
-                      {personalDetails.email || 'username@st.ug.edu.gh'}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Gender *
-                  </label>
-                  <select
-                    value={personalDetails.gender}
-                    onChange={(e) =>
-                      setPersonalDetails({ ...personalDetails, gender: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Nationality *
-                  </label>
-                  <select
-                    value={personalDetails.nationality}
-                    onChange={(e) =>
-                      setPersonalDetails({ ...personalDetails, nationality: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    {countries.map((country) => (
-                      <option key={country} value={country}>
-                        {country}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
-                    <Phone className="w-3 h-3" />
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    value={personalDetails.phone_number}
-                    onChange={(e) =>
-                      setPersonalDetails({ ...personalDetails, phone_number: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="+233 XX XXX XXXX"
-                    required
-                  />
                 </div>
               </div>
-            )}
-
-            {/* Step 2: Academic Details */}
-            {step === 2 && (
-              <div className="space-y-4 animate-slide-in">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
-                    <GraduationCap className="w-3 h-3" />
-                    Course *
-                  </label>
-                  <select
-                    value={academicDetails.course}
-                    onChange={(e) =>
-                      setAcademicDetails({ ...academicDetails, course: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Academic Level *
-                  </label>
-                  <select
-                    value={academicDetails.level}
-                    onChange={(e) =>
-                      setAcademicDetails({ ...academicDetails, level: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    {levels.map((level) => (
-                      <option key={level} value={level}>
-                        Level {level}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Study Mode *
-                  </label>
-                  <select
-                    value={academicDetails.study_mode}
-                    onChange={(e) =>
-                      setAcademicDetails({
-                        ...academicDetails,
-                        study_mode: e.target.value as any,
-                      })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    <option value="regular">Regular</option>
-                    <option value="distance">Distance</option>
-                    <option value="city_campus">City Campus</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Residential Status *
-                  </label>
-                  <select
-                    value={academicDetails.residential_status}
-                    onChange={(e) =>
-                      setAcademicDetails({
-                        ...academicDetails,
-                        residential_status: e.target.value as any,
-                        hall: e.target.value === 'non_resident' ? '' : academicDetails.hall,
-                      })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    <option value="resident">Resident</option>
-                    <option value="non_resident">Non-Resident</option>
-                  </select>
-                </div>
-
-                {/* Hall/Hostel - Only for Residents */}
-                {academicDetails.residential_status === 'resident' && (
-                  <div className="space-y-2 animate-slide-in">
-                    <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                      Hall/Hostel *
-                    </label>
-                    <select
-                      value={academicDetails.hall}
-                      onChange={(e) =>
-                        setAcademicDetails({
-                          ...academicDetails,
-                          hall: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      required
-                    >
-                      <option value="">Select Hall/Hostel</option>
-                      {halls.map((hall) => (
-                        <option key={hall} value={hall}>
-                          {hall}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Required for resident students
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step 3: Financial Details */}
-            {step === 3 && (
-              <div className="space-y-4 animate-slide-in">
-                <div className="space-y-2">
-                  <label className="flex items-center gap-1 text-base font-medium text-gray-700 dark:text-gray-300">
-                    <DollarSign className="w-3 h-3" />
-                    Amount (GHS) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    list="amount-options"
-                    value={financialDetails.amount}
-                    onChange={(e) =>
-                      setFinancialDetails({ ...financialDetails, amount: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="Select or enter amount"
-                    required
-                  />
-                  <datalist id="amount-options">
-                    <option value="30">30</option>
-                    <option value="100">100</option>
-                    <option value="130">130</option>
-                    <option value="150">150</option>
-                  </datalist>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Common amounts: GH₵30, GH₵100, GH₵130, GH₵150 or enter custom amount
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Reference ID *
-                  </label>
-                  <input
-                    type="text"
-                    value={financialDetails.reference_id}
-                    onChange={(e) =>
-                      setFinancialDetails({ ...financialDetails, reference_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
-                    placeholder="Payment reference number"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                    Payment Method *
-                  </label>
-                  <select
-                    value={financialDetails.payment_method}
-                    onChange={(e) => {
-                      const newPaymentMethod = e.target.value as any;
-                      setFinancialDetails({
-                        ...financialDetails,
-                        payment_method: newPaymentMethod,
-                        // Clear operator when switching away from momo
-                        operator: newPaymentMethod === 'momo' ? financialDetails.operator : '',
-                      });
-                    }}
-                    className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  >
-                    <option value="cash">Cash Payment</option>
-                    <option value="momo">Mobile Money</option>
-                    <option value="bank">Bank Transfer</option>
-                  </select>
-                </div>
-
-                {financialDetails.payment_method === 'momo' && (
-                  <div className="space-y-2">
-                    <label className="block text-base font-medium text-gray-700 dark:text-gray-300">
-                      Mobile Money Operator *
-                    </label>
-                    <select
-                      value={financialDetails.operator}
-                      onChange={(e) =>
-                        setFinancialDetails({ ...financialDetails, operator: e.target.value })
-                      }
-                      className="w-full px-3 py-2.5 text-base bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      required
-                    >
-                      <option value="">Select operator</option>
-                      <option value="MTN">MTN Mobile Money</option>
-                      <option value="Telecel">Telecel Cash</option>
-                      <option value="AirtelTigo">AirtelTigo Money</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <ErrorMessage message={error} onClose={() => setError('')} className="mt-4" />
-
-
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between items-center mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-              {step > 1 ? (
-                <button
-                  type="button"
-                  onClick={handlePrevious}
-                  className="flex items-center gap-1 px-4 py-2 text-base bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-all font-medium"
-                >
-                  <ArrowLeft className="w-3 h-3" />
-                  Previous
-                </button>
-              ) : (
-                <div></div>
-              )}
-
-              <div className="flex items-center gap-2 text-base text-gray-500 dark:text-gray-400">
-                Step {step} of 3
-              </div>
-
-              {step < 3 ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={!isStepValid()}
-                  className="flex items-center gap-1 px-4 py-2 text-base bg-blue-500 text-white rounded hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
-                >
-                  Next
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={loading || !isStepValid()}
-                  className="flex items-center gap-1 px-4 py-2 text-base bg-green-500 text-white rounded hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-lg"
-                >
-                  {loading ? (
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <Check className="w-3 h-3" />
-                  )}
-                  Complete Registration
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </form>
+            </Form>
+          );
+        }}
+      </Formik>
 
       {/* Success Modal */}
       {showSuccessModal && (
@@ -818,30 +791,7 @@ export const RegisterPage = () => {
                 onClick={() => {
                   setShowSuccessModal(false);
                   setStep(1);
-                  setPersonalDetails({
-                    surname: '',
-                    first_name: '',
-                    other_name: '',
-                    email: '',
-                    student_id: '',
-                    gender: 'Male',
-                    nationality: 'Ghanaian',
-                    phone_number: '',
-                  });
-                  setAcademicDetails({
-                    course: 'Computer Science',
-                    level: '100',
-                    study_mode: 'regular',
-                    residential_status: 'resident',
-                    hall: '',
-                  });
-                  setFinancialDetails({
-                    amount: '',
-                    reference_id: '',
-                    payment_method: 'cash',
-                    mobile_number: '',
-                    bank_name: 'GCB Bank',
-                  });
+                  window.location.reload(); // Reload to reset form
                 }}
                 className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition-all"
               >

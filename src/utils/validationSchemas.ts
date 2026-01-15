@@ -65,8 +65,9 @@ export const personalDetailsSchema = Yup.object().shape({
   
   student_id: Yup.string()
     .required('Student ID is required')
-    .min(3, 'Student ID must be at least 3 characters')
-    .max(50, 'Student ID must not exceed 50 characters'),
+    .matches(/^\d+$/, 'Must contain numbers only')
+    .min(8, 'Student ID must be at least 8 characters')
+    .max(8, 'Student ID must not exceed 8 characters'),
   
   gender: Yup.string()
     .required('Gender is required')
@@ -93,7 +94,7 @@ export const academicDetailsSchema = Yup.object().shape({
   
   study_mode: Yup.string()
     .required('Study mode is required')
-    .oneOf(['regular', 'distance', 'city_campus'], 'Please select a valid study mode'),
+    .oneOf(['regular', 'distance'], 'Please select a valid study mode'),
   
   residential_status: Yup.string()
     .required('Residential status is required')

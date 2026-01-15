@@ -227,7 +227,6 @@ export const StudentsPage = () => {
       `Female Students: ${analytics.femaleStudents} (${analyticsSource.length > 0 ? Math.round((analytics.femaleStudents / analyticsSource.length) * 100) : 0}%)`,
       `Regular Students: ${analytics.regularStudents}`,
       `Distance Students: ${analytics.distanceStudents}`,
-      `City Campus Students: ${analytics.cityStudents}`,
       `Resident Students: ${analytics.residentStudents}`,
       `Non-Resident Students: ${analytics.nonResidentStudents}`,
       '',
@@ -521,10 +520,6 @@ export const StudentsPage = () => {
               <span class="stat-value">${analytics.distanceStudents}</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">City Campus:</span>
-              <span class="stat-value">${analytics.cityStudents}</span>
-            </div>
-            <div class="stat-row">
               <span class="stat-label">Resident Students:</span>
               <span class="stat-value">${analytics.residentStudents}</span>
             </div>
@@ -712,7 +707,6 @@ export const StudentsPage = () => {
     femaleStudents: dataSource?.filter(s => s.gender === 'Female')?.length || 0,
     regularStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'REGULAR')?.length || 0,
     distanceStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE')?.length || 0,
-    cityStudents: dataSource?.filter(s => s.study_mode?.toUpperCase() === 'CITY_CAMPUS')?.length || 0,
     residentStudents: dataSource?.filter(s => s.residential_status?.toUpperCase() === 'RESIDENT')?.length || 0,
     nonResidentStudents: dataSource?.filter(s => s.residential_status?.toUpperCase() === 'NON_RESIDENT')?.length || 0,
     courseDistribution: courses.map(course => ({
@@ -732,7 +726,6 @@ export const StudentsPage = () => {
     femaleStudents: students?.filter(s => s.gender === 'Female')?.length || 0,
     regularStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'REGULAR')?.length || 0,
     distanceStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'DISTANCE')?.length || 0,
-    cityStudents: students?.filter(s => s.study_mode?.toUpperCase() === 'CITY_CAMPUS')?.length || 0,
     residentStudents: students?.filter(s => s.residential_status?.toUpperCase() === 'RESIDENT')?.length || 0,
     nonResidentStudents: students?.filter(s => s.residential_status?.toUpperCase() === 'NON_RESIDENT')?.length || 0,
   } : null;
@@ -912,10 +905,6 @@ export const StudentsPage = () => {
               <span className="text-gray-600 dark:text-gray-400">Distance</span>
               <span className="font-medium text-gray-800 dark:text-white">{analytics.distanceStudents}</span>
             </div>
-            <div className="flex justify-between text-lg">
-              <span className="text-gray-600 dark:text-gray-400">City Campus</span>
-              <span className="font-medium text-gray-800 dark:text-white">{analytics.cityStudents}</span>
-            </div>
           </div>
         </div>
 
@@ -1088,7 +1077,7 @@ export const StudentsPage = () => {
                     <td className="py-3 px-4 text-base text-gray-800 dark:text-white">Level {student.level}</td>
                     <td className="py-3 px-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                        {student.study_mode?.toUpperCase() === 'REGULAR' ? 'Regular' : student.study_mode?.toUpperCase() === 'DISTANCE' ? 'Distance' : 'City Campus'}
+                        {student.study_mode?.toUpperCase() === 'REGULAR' ? 'Regular' : 'Distance'}
                       </span>
                     </td>
                     <td className="py-3 px-4">

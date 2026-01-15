@@ -20,7 +20,7 @@ interface RegistrationFormValues {
   // Academic Details
   course: string;
   level: string;
-  study_mode: 'regular' | 'distance' | 'city_campus';
+  study_mode: 'regular' | 'distance';
   residential_status: 'resident' | 'non_resident';
   hall: string;
   // Financial Details
@@ -84,7 +84,7 @@ const step2ValidationSchema = Yup.object().shape({
   
   study_mode: Yup.string()
     .required('Study mode is required')
-    .oneOf(['regular', 'distance', 'city_campus'], 'Please select a valid study mode'),
+    .oneOf(['regular', 'distance'], 'Please select a valid study mode'),
   
   residential_status: Yup.string()
     .required('Residential status is required')
@@ -576,7 +576,6 @@ export const RegisterPage = () => {
                         >
                           <option value="regular">Regular</option>
                           <option value="distance">Distance</option>
-                          <option value="city_campus">City Campus</option>
                         </Field>
                       </div>
 

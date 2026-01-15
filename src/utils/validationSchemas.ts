@@ -94,7 +94,7 @@ export const academicDetailsSchema = Yup.object().shape({
   
   study_mode: Yup.string()
     .required('Study mode is required')
-    .oneOf(['regular', 'distance', 'city_campus'], 'Please select a valid study mode'),
+    .oneOf(['regular', 'distance'], 'Please select a valid study mode'),
   
   residential_status: Yup.string()
     .required('Residential status is required')

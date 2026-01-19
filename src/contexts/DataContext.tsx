@@ -108,9 +108,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         const fetchData = async () => {
             try {
                 const [studentsData, paymentsData, usersData] = await Promise.all([
-                    studentsAPI.getAll({ limit: 1000 }).catch(() => []),
-                    paymentsAPI.getAll({ limit: 1000 }).catch(() => []),
-                    usersAPI.getAll({ limit: 1000 }).catch(() => [])
+                    studentsAPI.getAll({ limit: 100000 }).catch(() => []),
+                    paymentsAPI.getAll({ limit: 100000 }).catch(() => []),
+                    usersAPI.getAll({ limit: 100000 }).catch(() => [])
                 ]);
                 
                 setStudents(studentsData);
@@ -127,7 +127,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     // Refresh functions
     const refreshStudents = async () => {
         try {
-            const data = await studentsAPI.getAll({ limit: 1000 });
+            const data = await studentsAPI.getAll({ limit: 100000 });
             setStudents(data);
         } catch (error) {
             console.error('Error refreshing students:', error);
@@ -136,7 +136,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
     const refreshPayments = async () => {
         try {
-            const data = await paymentsAPI.getAll({ limit: 1000 });
+            const data = await paymentsAPI.getAll({ limit: 100000 });
             setPayments(data);
         } catch (error) {
             console.error('Error refreshing payments:', error);
@@ -145,7 +145,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
     const refreshUsers = async () => {
         try {
-            const data = await usersAPI.getAll({ limit: 1000 });
+            const data = await usersAPI.getAll({ limit: 100000 });
             setUsers(data);
         } catch (error) {
             console.error('Error refreshing users:', error);
